@@ -51,12 +51,9 @@ A web application that synchronizes Canvas LMS assignments with Todoist tasks, h
 
 5. Initialize the database:
    ```
-   flask shell
-   >>> from app import create_app, db
-   >>> app = create_app()
-   >>> with app.app_context():
-   >>>     db.create_all()
-   >>> exit()
+   flask --app run.py db init
+   flask --app run.py db migrate
+   flask --app run.py db upgrade
    ```
 
 6. Run the application:
@@ -165,6 +162,44 @@ For deploying on PythonAnywhere, the following specific configurations are recom
    - Set the ADMIN_EMAIL environment variable to specify which email has admin access
    ```
    ADMIN_EMAIL=your-admin-email@example.com
+   ```
+
+## Deployment
+
+### Local Deployment
+
+5. Initialize the database:
+   ```
+   flask --app run.py db init
+   flask --app run.py db migrate
+   flask --app run.py db upgrade
+   ```
+
+6. Run the application:
+   ```
+   python run.py
+   ```
+
+### PythonAnywhere Deployment
+
+This application is designed to work on PythonAnywhere with a custom scheduler approach:
+
+1. Set up a web app on PythonAnywhere with Flask
+2. Configure your WSGI file to import from run.py
+3. Set up the MySQL database using the provided DATABASE_URI in your .env file
+4. Set up a scheduled task to run custom_scheduler.py at your desired frequency
+
+The custom scheduler script (custom_scheduler.py) is designed to run as a standalone script that performs synchronization tasks outside of the Flask application context. This approach avoids the limitations of running Flask-APScheduler on PythonAnywhere.
+
+## Custom Scheduler
+
+The application includes a custom scheduler script (`custom_scheduler.py`) that can be used for scheduled tasks, especially when deploying to environments that don't support background processes like PythonAnywhere.
+
+To use the custom scheduler:
+1. Make sure all environment variables are properly set
+2. Run the script manually or set it up as a scheduled task
+   ```
+   python custom_scheduler.py
    ```
 
 ## Usage
