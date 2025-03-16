@@ -2,6 +2,7 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
 import datetime
+from utils import encrypt_data, decrypt_data
 
 db = SQLAlchemy()
 
@@ -11,8 +12,8 @@ class User(db.Model, UserMixin):
     email = db.Column(db.String(120), unique=True, nullable=False)
     password_hash = db.Column(db.String(128))
     canvas_api_url = db.Column(db.String(256))
-    canvas_api_token = db.Column(db.String(256))
-    todoist_api_key = db.Column(db.String(256))
+    canvas_api_token = db.Column(db.String(512))
+    todoist_api_key = db.Column(db.String(512))
     is_premium = db.Column(db.Boolean, default=False)
     created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow)
     
@@ -21,6 +22,28 @@ class User(db.Model, UserMixin):
         
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
+    
+    def set_canvas_api_token(self, token):
+        if token:
+            self.canvas_api_token = encrypt_data(token)
+        else:
+            self.canvas_api_token = None
+            
+    def get_canvas_api_token(self):
+        if self.canvas_api_token:
+            return decrypt_data(self.canvas_api_token)
+        return None
+        
+    def set_todoist_api_key(self, key):
+        if key:
+            self.todoist_api_key = encrypt_data(key)
+        else:
+            self.todoist_api_key = None
+            
+    def get_todoist_api_key(self):
+        if self.todoist_api_key:
+            return decrypt_data(self.todoist_api_key)
+        return None
     
     def __repr__(self):
         return f'<User {self.username}>'

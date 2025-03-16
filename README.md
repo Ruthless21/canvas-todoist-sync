@@ -66,6 +66,62 @@ A web application that synchronizes Canvas LMS assignments with Todoist tasks, h
 
 7. Access the application at `http://localhost:5000`
 
+## Production Setup Guide
+
+For secure deployment in production, follow these additional steps:
+
+1. Configure environment variables for production:
+   ```
+   SECRET_KEY=<strong-random-secret-key>
+   FLASK_ENV=production
+   DATABASE_URL=<your-production-database-url>
+   ```
+
+2. Stripe Integration (if using premium features):
+   ```
+   STRIPE_PUBLISHABLE_KEY=<your-stripe-publishable-key>
+   STRIPE_SECRET_KEY=<your-stripe-secret-key>
+   STRIPE_WEBHOOK_SECRET=<your-stripe-webhook-secret>
+   STRIPE_PRODUCT_ID=<your-stripe-product-id>
+   STRIPE_MONTHLY_PRICE_ID=<your-stripe-price-id-for-monthly>
+   STRIPE_YEARLY_PRICE_ID=<your-stripe-price-id-for-yearly>
+   DOMAIN=<your-production-domain>
+   ```
+
+3. Configure a proper database:
+   - Production environments should use a robust database like PostgreSQL
+   - Set up migrations for database changes:
+   ```bash
+   flask db init
+   flask db migrate -m "Initial migration."
+   flask db upgrade
+   ```
+
+4. Set up a production web server:
+   - Use Gunicorn as WSGI server:
+   ```bash
+   pip install gunicorn
+   gunicorn -w 4 -b 127.0.0.1:5000 run:app
+   ```
+   - Set up Nginx as a reverse proxy
+   - Configure SSL certificates using Let's Encrypt
+
+5. Security considerations:
+   - Set `SESSION_COOKIE_SECURE=True` in your config
+   - Set `REMEMBER_COOKIE_SECURE=True` in your config
+   - Ensure sensitive environmental variables are properly restricted
+   - Regularly update dependencies for security patches
+
+6. Monitoring and logging:
+   - Set up application monitoring using Sentry, New Relic, or similar
+   - Configure proper logging to capture errors
+   - Set up backup schedules for your database
+
+7. Run production initialization:
+   ```bash
+   FLASK_ENV=production python run.py
+   ```
+
 ## Usage
 
 1. Register for an account

@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, session
+from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, session, g
 import os
 from dotenv import load_dotenv
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
@@ -9,7 +9,7 @@ from services.canvas_api import CanvasAPI
 from services.todoist_api import TodoistClient
 from services.sync_service import SyncService
 from functools import wraps
-from datetime import datetime
+from datetime import datetime, timedelta
 from flask_apscheduler import APScheduler
 from flask_caching import Cache
 from config import config
@@ -45,10 +45,10 @@ def get_api_clients():
     if current_user.is_authenticated:
         canvas_api_client = CanvasAPI(
             api_url=current_user.canvas_api_url,
-            api_token=current_user.canvas_api_token
+            api_token=current_user.get_canvas_api_token()
         )
         todoist_client = TodoistClient(
-            api_token=current_user.todoist_api_key
+            api_token=current_user.get_todoist_api_key()
         )
         sync_service_client = SyncService(canvas_api_client, todoist_client)
         return canvas_api_client, todoist_client, sync_service_client
@@ -146,10 +146,10 @@ def create_app(config_name='default'):
                         # Initialize API clients for the user
                         canvas_api_client = CanvasAPI(
                             api_url=user.canvas_api_url,
-                            api_token=user.canvas_api_token
+                            api_token=user.get_canvas_api_token()
                         )
                         todoist_client = TodoistClient(
-                            api_token=user.todoist_api_key
+                            api_token=user.get_todoist_api_key()
                         )
                         sync_service_client = SyncService(canvas_api_client, todoist_client)
                         
@@ -255,18 +255,22 @@ def create_app(config_name='default'):
     @app.route('/api_credentials', methods=['GET', 'POST'])
     @login_required
     def api_credentials():
+        """Handle API credentials form submission."""
         form = APICredentialsForm()
+        
         if form.validate_on_submit():
             current_user.canvas_api_url = form.canvas_api_url.data
-            current_user.canvas_api_token = form.canvas_api_token.data
-            current_user.todoist_api_key = form.todoist_api_key.data
+            current_user.set_canvas_api_token(form.canvas_api_token.data)
+            current_user.set_todoist_api_key(form.todoist_api_key.data)
             db.session.commit()
-            flash('Your API credentials have been saved.', 'success')
+            flash('API credentials updated successfully!', 'success')
             return redirect(url_for('dashboard'))
-        elif request.method == 'GET':
+        
+        # Pre-fill form with user's existing credentials
+        if request.method == 'GET':
             form.canvas_api_url.data = current_user.canvas_api_url
-            form.canvas_api_token.data = current_user.canvas_api_token
-            form.todoist_api_key.data = current_user.todoist_api_key
+            form.canvas_api_token.data = current_user.get_canvas_api_token()
+            form.todoist_api_key.data = current_user.get_todoist_api_key()
         
         return render_template('api_credentials.html', title='API Credentials', form=form)
     
@@ -315,39 +319,58 @@ def create_app(config_name='default'):
     @app.route('/settings')
     @login_required
     def settings():
-        # Create the API credentials form
+        """User settings page."""
+        # Get user's subscription status
+        subscription = None
+        if current_user.is_premium:
+            subscription = Subscription.query.filter_by(user_id=current_user.id).first()
+        
+        # Canvas and Todoist API credentials form
         api_form = APICredentialsForm()
         
-        # Debug: Log the current user's credentials (with partial masking for tokens)
-        canvas_token = current_user.canvas_api_token or ""  # Ensure it's never None
-        todoist_key = current_user.todoist_api_key or ""    # Ensure it's never None
-        
-        print(f"DEBUG - User: {current_user.username}")
-        print(f"DEBUG - Canvas API URL: {current_user.canvas_api_url or ''}")
-        print(f"DEBUG - Canvas API Token: {canvas_token[:5] + '*****' if canvas_token else 'None'}")
-        print(f"DEBUG - Todoist API Key: {todoist_key[:5] + '*****' if todoist_key else 'None'}")
-        
-        # Load existing API credentials directly from the user object
-        api_form.canvas_api_url.data = current_user.canvas_api_url or ""
-        api_form.canvas_api_token.data = current_user.canvas_api_token or ""
-        api_form.todoist_api_key.data = current_user.todoist_api_key or ""
-        
-        # Create the sync settings form
+        # Forms for sync settings
         sync_form = SyncSettingsForm()
         
-        # Get existing sync settings if available
-        settings = SyncSettings.query.filter_by(user_id=current_user.id).first()
-        if settings:
-            sync_form.enabled.data = settings.enabled
-            sync_form.frequency.data = settings.frequency
-        
-        # Create the account form
+        # Forms for account management
         account_form = AccountUpdateForm()
-        account_form.username.data = current_user.username
-        account_form.email.data = current_user.email
-        
-        # Create the password form
         password_form = PasswordChangeForm()
+        
+        # API credentials update
+        if api_form.is_submitted() and 'api_submit' in request.form:
+            if api_form.validate():
+                current_user.canvas_api_url = api_form.canvas_api_url.data
+                current_user.set_canvas_api_token(api_form.canvas_api_token.data)
+                current_user.set_todoist_api_key(api_form.todoist_api_key.data)
+                db.session.commit()
+                
+                # Test the credentials
+                canvas_token = current_user.get_canvas_api_token() or ""  # Ensure it's never None
+                todoist_key = current_user.get_todoist_api_key() or ""    # Ensure it's never None
+                
+                print(f"DEBUG - User: {current_user.username}")
+                print(f"DEBUG - Canvas API URL: {current_user.canvas_api_url or ''}")
+                print(f"DEBUG - Canvas API Token: {canvas_token[:5] + '*****' if canvas_token else 'None'}")
+                print(f"DEBUG - Todoist API Key: {todoist_key[:5] + '*****' if todoist_key else 'None'}")
+            
+        # Pre-fill forms with existing data
+        if request.method == 'GET':
+            # API credentials form
+            api_form.canvas_api_url.data = current_user.canvas_api_url
+            api_form.canvas_api_token.data = current_user.get_canvas_api_token() or ""
+            api_form.todoist_api_key.data = current_user.get_todoist_api_key() or ""
+            
+            # Sync settings form
+            settings = SyncSettings.query.filter_by(user_id=current_user.id).first()
+            if settings:
+                sync_form.enabled.data = settings.enabled
+                sync_form.frequency.data = settings.frequency
+            
+            # Account form
+            account_form.username.data = current_user.username
+            account_form.email.data = current_user.email
+            
+            # Password form
+            password_form.new_password.data = ""
         
         return render_template('settings.html', 
                               api_form=api_form,
@@ -484,6 +507,75 @@ def create_app(config_name='default'):
                 'projects': projects
             })
         except Exception as e:
+            return jsonify({'error': str(e)}), 500
+    
+    @app.before_request
+    def get_apis():
+        """Initialize API clients if a user is logged in."""
+        if current_user.is_authenticated:
+            g.canvas_api = CanvasAPI(
+                api_url=current_user.canvas_api_url,
+                api_token=current_user.get_canvas_api_token()
+            )
+            g.todoist_api = TodoistClient(
+                api_token=current_user.get_todoist_api_key()
+            )
+    
+    @app.route('/sync-now')
+    @login_required
+    def sync_now():
+        """Manual sync triggered by the user."""
+        if not current_user.is_premium and current_user.created_at < datetime.now() - timedelta(days=stripe_config.TRIAL_DAYS):
+            flash('Your trial period has ended. Please upgrade to continue using sync features.', 'warning')
+            return redirect(url_for('pricing'))
+        
+        try:
+            # Create API instances with user's credentials
+            canvas_api = CanvasAPI(
+                api_url=current_user.canvas_api_url,
+                api_token=current_user.get_canvas_api_token()
+            )
+            todoist_api = TodoistClient(
+                api_token=current_user.get_todoist_api_key()
+            )
+            
+            # Use the SyncService to sync assignments
+            sync_service = SyncService(canvas_api, todoist_api)
+            
+            # Get all courses
+            courses = canvas_api.get_courses()
+            
+            # Sync assignments for each course
+            for course in courses:
+                sync_service.sync_course_assignments(course['id'])
+            
+            # Record sync history
+            history = SyncHistory(
+                user_id=current_user.id,
+                sync_type='manual_sync',
+                source_id='manual',
+                items_count=len(courses),
+                status='success'
+            )
+            db.session.add(history)
+            db.session.commit()
+            
+            return jsonify({
+                'success': True,
+                'message': f'Successfully synced {len(courses)} assignments',
+                'courses': [course.to_dict() for course in courses]
+            })
+        except Exception as e:
+            # Record failed sync
+            history = SyncHistory(
+                user_id=current_user.id,
+                sync_type='manual_sync',
+                source_id='manual',
+                status='failed'
+            )
+            db.session.add(history)
+            db.session.commit()
+    
             return jsonify({'error': str(e)}), 500
     
     # Create database tables before first request

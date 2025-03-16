@@ -72,13 +72,6 @@
                                             How to get your Canvas API token
                                         </a>
                                     </div>
-                                    <!-- Debug output (only visible during development) -->
-                                    {% if debug %}
-                                    <div class="small text-muted mt-1">
-                                        Debug - Has value: {{ 'Yes' if api_form.canvas_api_token.data else 'No' }} 
-                                        {% if api_form.canvas_api_token.data %}({{ api_form.canvas_api_token.data|length }} chars){% else %}(0 chars){% endif %}
-                                    </div>
-                                    {% endif %}
                                 </div>
                             </div>
                             
@@ -98,16 +91,9 @@
                                     </div>
                                     <div class="form-text">
                                         <a href="https://todoist.com/app/settings/integrations/developer" target="_blank">
-                                            How to get your Todoist API token
+                                            How to get your Todoist API key
                                         </a>
                                     </div>
-                                    <!-- Debug output (only visible during development) -->
-                                    {% if debug %}
-                                    <div class="small text-muted mt-1">
-                                        Debug - Has value: {{ 'Yes' if api_form.todoist_api_key.data else 'No' }} 
-                                        {% if api_form.todoist_api_key.data %}({{ api_form.todoist_api_key.data|length }} chars){% else %}(0 chars){% endif %}
-                                    </div>
-                                    {% endif %}
                                 </div>
                             </div>
                             
@@ -322,62 +308,15 @@
 {{ super() }}
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        // Get the password fields
+        // DOM elements
         const canvasApiToken = document.getElementById('canvas_api_token');
         const todoistApiKey = document.getElementById('todoist_api_key');
         
-        // Get their values from data attributes (to be set below)
+        // Initial values (masked for security)
         const canvasApiTokenValue = "{{ api_form.canvas_api_token.data or '' }}";
         const todoistApiKeyValue = "{{ api_form.todoist_api_key.data or '' }}";
         
-        console.log('DEBUG - canvas_api_token value length:', canvasApiTokenValue.length);
-        console.log('DEBUG - todoist_api_key value length:', todoistApiKeyValue.length);
-        
-        // Use a timeout to set the values after the page has loaded
-        // This bypasses browser security that might prevent setting password values
-        setTimeout(function() {
-            // Force-set the values on the input fields
-            if (canvasApiTokenValue && canvasApiTokenValue.length > 0) {
-                console.log('Setting canvas token value');
-                // Create a new input element to replace the old one
-                const newCanvasInput = document.createElement('input');
-                for (let i = 0; i < canvasApiToken.attributes.length; i++) {
-                    const attr = canvasApiToken.attributes[i];
-                    if (attr.name !== 'value') {
-                        newCanvasInput.setAttribute(attr.name, attr.value);
-                    }
-                }
-                newCanvasInput.value = canvasApiTokenValue;
-                canvasApiToken.parentNode.replaceChild(newCanvasInput, canvasApiToken);
-                
-                // Update our reference
-                const updatedCanvasToken = document.getElementById('canvas_api_token');
-                console.log('Canvas token value set, new length:', updatedCanvasToken.value.length);
-            }
-            
-            if (todoistApiKeyValue && todoistApiKeyValue.length > 0) {
-                console.log('Setting todoist key value');
-                // Create a new input element to replace the old one
-                const newTodoistInput = document.createElement('input');
-                for (let i = 0; i < todoistApiKey.attributes.length; i++) {
-                    const attr = todoistApiKey.attributes[i];
-                    if (attr.name !== 'value') {
-                        newTodoistInput.setAttribute(attr.name, attr.value);
-                    }
-                }
-                newTodoistInput.value = todoistApiKeyValue;
-                todoistApiKey.parentNode.replaceChild(newTodoistInput, todoistApiKey);
-                
-                // Update our reference
-                const updatedTodoistKey = document.getElementById('todoist_api_key');
-                console.log('Todoist key value set, new length:', updatedTodoistKey.value.length);
-            }
-            
-            // Re-initialize toggle listeners since we replaced the elements
-            initToggleListeners();
-        }, 100);
-        
-        // Password toggle functionality in a separate function so we can call it again
+        // Setup toggle password buttons
         function initToggleListeners() {
             const toggleButtons = document.querySelectorAll('.toggle-password');
             toggleButtons.forEach(button => {
@@ -386,16 +325,12 @@
                     const inputField = document.getElementById(targetId);
                     const icon = this.querySelector('i');
                     
-                    console.log('Toggle clicked for', targetId);
-                    
                     // Toggle password visibility
                     if (inputField.type === 'password') {
-                        console.log('Changing to text type');
                         inputField.type = 'text';
                         icon.classList.remove('bi-eye');
                         icon.classList.add('bi-eye-slash');
                     } else {
-                        console.log('Changing to password type');
                         inputField.type = 'password';
                         icon.classList.remove('bi-eye-slash');
                         icon.classList.add('bi-eye');
