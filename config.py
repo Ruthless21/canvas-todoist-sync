@@ -30,16 +30,27 @@ class TestingConfig(Config):
 class ProductionConfig(Config):
     """Production configuration."""
     DEBUG = False
-    # Use more sophisticated caching in production
-    CACHE_TYPE = 'redis'
     # Set up for HTTPS
     SESSION_COOKIE_SECURE = True
     REMEMBER_COOKIE_SECURE = True
+    # Use more sophisticated caching if Redis is available
+    CACHE_TYPE = os.environ.get('CACHE_TYPE') or 'simple'
+    # Additional cache config
+    CACHE_DEFAULT_TIMEOUT = 600  # longer timeout for production
+
+class PythonAnywhereConfig(ProductionConfig):
+    """PythonAnywhere-specific production configuration."""
+    # Use FileSystemCache for better performance than SimpleCache without Redis
+    CACHE_TYPE = 'FileSystemCache'
+    CACHE_DIR = os.environ.get('CACHE_DIR') or '/tmp/canvas_todoist_cache'
+    CACHE_THRESHOLD = 500  # Maximum number of items the cache will store
+    CACHE_DEFAULT_TIMEOUT = 900  # 15 minutes
 
 # Configuration dictionary for easy access
 config = {
     'development': DevelopmentConfig,
     'testing': TestingConfig,
     'production': ProductionConfig,
+    'pythonanywhere': PythonAnywhereConfig,
     'default': DevelopmentConfig
 }

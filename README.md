@@ -122,6 +122,44 @@ For secure deployment in production, follow these additional steps:
    FLASK_ENV=production python run.py
    ```
 
+## PythonAnywhere Deployment
+
+For deploying on PythonAnywhere, the following specific configurations are recommended:
+
+1. Set up a PostgreSQL database from the PythonAnywhere dashboard
+   - Configure the database URL in your environment variables:
+   ```
+   DATABASE_URL=postgres://<username>:<password>@<hostname>/<dbname>
+   ```
+
+2. Use the PythonAnywhere-specific configuration:
+   ```
+   FLASK_ENV=production
+   ```
+   - The application will automatically detect PythonAnywhere and use the optimized configuration
+
+3. Configure an "always-on task" for the scheduler:
+   - Command: `cd ~/canvas_todoist_sync && python run.py`
+   - This ensures that the automatic sync functionality works properly
+
+4. File-based caching strategy:
+   - The application uses FileSystemCache on PythonAnywhere instead of Redis
+   - Cache files are stored in `/tmp/canvas_todoist_cache` by default
+   - You can customize the location with the CACHE_DIR environment variable
+
+5. Web app configuration:
+   - Source code: `/home/<username>/canvas_todoist_sync`
+   - Working directory: `/home/<username>/canvas_todoist_sync`
+   - WSGI configuration file:
+   ```python
+   import sys
+   path = '/home/<username>/canvas_todoist_sync'
+   if path not in sys.path:
+       sys.path.append(path)
+   
+   from run import app as application
+   ```
+
 ## Usage
 
 1. Register for an account

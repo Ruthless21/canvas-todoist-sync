@@ -68,6 +68,13 @@ def create_app(config_name='default'):
     # Load configuration from config.py
     app.config.from_object(config[config_name])
     
+    # Make sure cache directory exists if using FileSystemCache
+    if app.config.get('CACHE_TYPE') == 'FileSystemCache' and app.config.get('CACHE_DIR'):
+        cache_dir = app.config.get('CACHE_DIR')
+        if not os.path.exists(cache_dir):
+            os.makedirs(cache_dir, exist_ok=True)
+            print(f"Created cache directory at {cache_dir}")
+    
     # Initialize extensions with app
     db.init_app(app)
     login_manager = LoginManager(app)
