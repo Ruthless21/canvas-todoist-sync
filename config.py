@@ -45,6 +45,12 @@ class PythonAnywhereConfig(ProductionConfig):
     CACHE_DIR = os.environ.get('CACHE_DIR') or '/tmp/canvas_todoist_cache'
     CACHE_THRESHOLD = 500  # Maximum number of items the cache will store
     CACHE_DEFAULT_TIMEOUT = 900  # 15 minutes
+    
+    # MySQL configuration for PythonAnywhere
+    # Format: mysql://<username>:<password>@<username>.mysql.pythonanywhere-services.com/<dbname>
+    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or 'sqlite:///canvas_todoist.db'
+    # Use smaller VARCHAR lengths for MySQL compatibility with specific charsets
+    MYSQL_INDEXES_MAX_LENGTH = 191  # For utf8mb4 compatibility
 
 # Configuration dictionary for easy access
 config = {

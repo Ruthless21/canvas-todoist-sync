@@ -54,12 +54,45 @@ def get_api_clients():
         return canvas_api_client, todoist_client, sync_service_client
     return None, None, None
 
-# Cached API functions
+# API functions
 def get_canvas_courses(api_client):
-    return api_client.get_courses()
+    if not api_client:
+        return []
+    try:
+        return api_client.get_courses()
+    except Exception as e:
+        print(f"Error fetching Canvas courses: {str(e)}")
+        return []
 
 def get_todoist_projects(api_client):
-    return api_client.get_projects()
+    if not api_client:
+        return []
+    try:
+        return api_client.get_projects()
+    except Exception as e:
+        print(f"Error fetching Todoist projects: {str(e)}")
+        return []
+
+# Global cached functions to be used by routes
+def get_cached_canvas_courses(api_client):
+    """Cached wrapper for get_canvas_courses that will be properly initialized with the app's cache"""
+    if not api_client:
+        return []
+    try:
+        return get_canvas_courses(api_client)
+    except Exception as e:
+        print(f"Error in cached Canvas courses: {str(e)}")
+        return []
+    
+def get_cached_todoist_projects(api_client):
+    """Cached wrapper for get_todoist_projects that will be properly initialized with the app's cache"""
+    if not api_client:
+        return []
+    try:
+        return get_todoist_projects(api_client)
+    except Exception as e:
+        print(f"Error in cached Todoist projects: {str(e)}")
+        return []
 
 def create_app(config_name='default'):
     # Create and configure the app
@@ -111,14 +144,19 @@ def create_app(config_name='default'):
     def load_user(id):
         return User.query.get(int(id))
     
-    # Cache decorators
+    # Set up cache functions with proper decorators now that we have app context
     @cache.cached(timeout=app.config['CACHE_DEFAULT_TIMEOUT'], key_prefix=lambda: f"courses_{current_user.id}" if current_user.is_authenticated else "courses_anonymous")
-    def get_cached_canvas_courses(api_client):
+    def get_cached_canvas_courses_with_app(api_client):
         return get_canvas_courses(api_client)
     
     @cache.cached(timeout=app.config['CACHE_DEFAULT_TIMEOUT'], key_prefix=lambda: f"projects_{current_user.id}" if current_user.is_authenticated else "projects_anonymous")
-    def get_cached_todoist_projects(api_client):
+    def get_cached_todoist_projects_with_app(api_client):
         return get_todoist_projects(api_client)
+    
+    # Replace the global functions with the decorated versions
+    global get_cached_canvas_courses, get_cached_todoist_projects
+    get_cached_canvas_courses = get_cached_canvas_courses_with_app
+    get_cached_todoist_projects = get_cached_todoist_projects_with_app
     
     # Scheduled task for automated syncing
     @scheduler.task('interval', id='sync_assignments', seconds=60*15)  # Run every 15 minutes
@@ -299,8 +337,9 @@ def create_app(config_name='default'):
     @app.route('/admin/users')
     @login_required
     def admin_users():
-        # Simple admin check - in a real app, you'd have proper admin roles
-        if current_user.email != 'tatumparr@gmail.com':
+        # Use environment variable for admin email instead of hardcoding
+        admin_email = os.environ.get('ADMIN_EMAIL', 'tatumparr@gmail.com')
+        if current_user.email != admin_email:
             flash('Admin access required.', 'danger')
             return redirect(url_for('dashboard'))
         
@@ -310,8 +349,9 @@ def create_app(config_name='default'):
     @app.route('/admin/toggle_premium/<int:user_id>', methods=['POST'])
     @login_required
     def toggle_premium(user_id):
-        # Simple admin check
-        if current_user.email != 'tatumparr@gmail.com':
+        # Use environment variable for admin email instead of hardcoding
+        admin_email = os.environ.get('ADMIN_EMAIL', 'tatumparr@gmail.com')
+        if current_user.email != admin_email:
             flash('Admin access required.', 'danger')
             return redirect(url_for('dashboard'))
         
@@ -323,7 +363,7 @@ def create_app(config_name='default'):
         return redirect(url_for('admin_users'))
     
     # Settings routes
-    @app.route('/settings')
+    @app.route('/settings', methods=['GET', 'POST'])
     @login_required
     def settings():
         """User settings page."""
@@ -354,10 +394,9 @@ def create_app(config_name='default'):
                 canvas_token = current_user.get_canvas_api_token() or ""  # Ensure it's never None
                 todoist_key = current_user.get_todoist_api_key() or ""    # Ensure it's never None
                 
-                print(f"DEBUG - User: {current_user.username}")
-                print(f"DEBUG - Canvas API URL: {current_user.canvas_api_url or ''}")
-                print(f"DEBUG - Canvas API Token: {canvas_token[:5] + '*****' if canvas_token else 'None'}")
-                print(f"DEBUG - Todoist API Key: {todoist_key[:5] + '*****' if todoist_key else 'None'}")
+                # Success message
+                flash('API credentials updated successfully!', 'success')
+                return redirect(url_for('settings'))
             
         # Pre-fill forms with existing data
         if request.method == 'GET':
@@ -532,7 +571,7 @@ def create_app(config_name='default'):
     @login_required
     def sync_now():
         """Manual sync triggered by the user."""
-        if not current_user.is_premium and current_user.created_at < datetime.now() - timedelta(days=stripe_config.TRIAL_DAYS):
+        if not current_user.is_premium and current_user.created_at < datetime.utcnow() - timedelta(days=stripe_config.TRIAL_DAYS):
             flash('Your trial period has ended. Please upgrade to continue using sync features.', 'warning')
             return redirect(url_for('pricing'))
         
@@ -570,7 +609,7 @@ def create_app(config_name='default'):
             return jsonify({
                 'success': True,
                 'message': f'Successfully synced {len(courses)} assignments',
-                'courses': [course.to_dict() for course in courses]
+                'courses': courses  # Canvas API already returns JSON-serializable dictionaries
             })
         except Exception as e:
             # Record failed sync

@@ -126,11 +126,12 @@ For secure deployment in production, follow these additional steps:
 
 For deploying on PythonAnywhere, the following specific configurations are recommended:
 
-1. Set up a PostgreSQL database from the PythonAnywhere dashboard
+1. Use the built-in MySQL database (free with all PythonAnywhere accounts)
    - Configure the database URL in your environment variables:
    ```
-   DATABASE_URL=postgres://<username>:<password>@<hostname>/<dbname>
+   DATABASE_URL=mysql://<username>:<password>@<username>.mysql.pythonanywhere-services.com/<dbname>
    ```
+   - You can create a MySQL database from the PythonAnywhere Databases tab
 
 2. Use the PythonAnywhere-specific configuration:
    ```
@@ -158,6 +159,12 @@ For deploying on PythonAnywhere, the following specific configurations are recom
        sys.path.append(path)
    
    from run import app as application
+   ```
+
+6. Admin access configuration:
+   - Set the ADMIN_EMAIL environment variable to specify which email has admin access
+   ```
+   ADMIN_EMAIL=your-admin-email@example.com
    ```
 
 ## Usage
