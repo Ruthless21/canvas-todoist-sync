@@ -1,0 +1,368 @@
+{% extends "base.html" %}
+{% block title %}Pricing - Canvas-Todoist Sync{% endblock %}
+
+{% block styles %}
+    {{ super() }}
+    <style>
+        .price-card {
+            transition: transform 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .price-card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .badge-corner {
+            position: absolute;
+            top: 0;
+            right: 0;
+            transform: rotate(45deg) translate(15px, -15px);
+            width: 150px;
+            text-align: center;
+            z-index: 10;
+        }
+        
+        /* Toggle switch styling */
+        .price-toggle {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 2rem;
+        }
+        
+        .toggle-label {
+            font-weight: bold;
+            margin: 0 10px;
+        }
+        
+        .toggle-control {
+            position: relative;
+            display: inline-block;
+            width: 60px;
+            height: 34px;
+        }
+        
+        .toggle-control input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        
+        .toggle-switch {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 34px;
+        }
+        
+        .toggle-switch:before {
+            position: absolute;
+            content: "";
+            height: 26px;
+            width: 26px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+        
+        input:checked + .toggle-switch {
+            background-color: #2196F3;
+        }
+        
+        input:checked + .toggle-switch:before {
+            transform: translateX(26px);
+        }
+        
+        .save-label {
+            background-color: #ffc107;
+            color: #000;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            margin-left: 10px;
+        }
+    </style>
+{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-12 text-center">
+        <h2 class="fw-bold">Choose Your Plan</h2>
+        <p class="lead text-muted">Get premium features with a 7-day free trial</p>
+    </div>
+</div>
+
+<script>
+    // Store pricing info globally so it's accessible regardless of which elements are shown
+    var monthlyPrice = {{ monthly_price }};
+    var yearlyPrice = {{ yearly_price }};
+    var monthlyPriceId = "{{ stripe_monthly_price_id }}";
+    var yearlyPriceId = "{{ stripe_yearly_price_id }}";
+</script>
+
+<div class="row justify-content-center">
+    <div class="col-md-12 text-center">
+        <div class="price-toggle">
+            <span class="toggle-label" id="monthly-label">Monthly</span>
+            <label class="toggle-control">
+                <input type="checkbox" id="billing-toggle">
+                <span class="toggle-switch"></span>
+            </label>
+            <span class="toggle-label" id="yearly-label">Yearly</span>
+            <span class="save-label" id="save-label">Save 21%</span>
+        </div>
+    </div>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-md-5 mb-4">
+        <div class="card border-0 shadow-sm h-100 price-card">
+            <div class="card-header bg-white text-center py-4">
+                <h3 class="fw-bold mb-0">Free</h3>
+                <div class="display-6 my-3">$0<span class="text-muted fs-5"></span></div>
+            </div>
+            <div class="card-body p-4">
+                <ul class="list-group list-group-flush mb-4">
+                    <li class="list-group-item border-0 ps-0">
+                        <i class="bi bi-check-circle-fill me-2 text-success"></i>
+                        Manual sync between Canvas and Todoist
+                    </li>
+                    <li class="list-group-item border-0 ps-0">
+                        <i class="bi bi-check-circle-fill me-2 text-success"></i>
+                        Sync up to 3 courses
+                    </li>
+                    <li class="list-group-item border-0 ps-0">
+                        <i class="bi bi-check-circle-fill me-2 text-success"></i>
+                        Basic sync history
+                    </li>
+                    <li class="list-group-item border-0 ps-0 text-muted">
+                        <i class="bi bi-x-circle-fill me-2 text-danger"></i>
+                        Automatic synchronization
+                    </li>
+                    <li class="list-group-item border-0 ps-0 text-muted">
+                        <i class="bi bi-x-circle-fill me-2 text-danger"></i>
+                        Priority support
+                    </li>
+                </ul>
+                
+                {% if current_user.is_authenticated and not current_user.is_premium %}
+                    <div class="alert alert-success">
+                        <i class="bi bi-check-circle me-2"></i>You are currently on the free plan
+                    </div>
+                {% else %}
+                    <div class="d-grid">
+                        <button class="btn btn-outline-primary" disabled>Current Plan</button>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-5 mb-4">
+        <div class="card border-0 shadow h-100 border-primary price-card">
+            <div class="card-header text-center py-4 bg-primary text-white">
+                <span class="badge bg-warning text-dark position-absolute top-0 end-0 mt-2 me-2">7-DAY FREE TRIAL</span>
+                <h3 class="fw-bold mb-0">Premium</h3>
+                
+                <div class="display-6 my-3" id="price-display">${{ monthly_price }}<span class="fs-5">/month</span></div>
+                <div class="mt-1 small">
+                    <span class="badge bg-success">No credit card required for trial</span>
+                </div>
+            </div>
+            <div class="card-body p-4">
+                <ul class="list-group list-group-flush mb-4">
+                    <li class="list-group-item border-0 ps-0">
+                        <i class="bi bi-check-circle-fill me-2 text-success"></i>
+                        Everything in Free plan
+                    </li>
+                    <li class="list-group-item border-0 ps-0">
+                        <i class="bi bi-check-circle-fill me-2 text-success"></i>
+                        <strong>Automatic assignment synchronization</strong>
+                    </li>
+                    <li class="list-group-item border-0 ps-0">
+                        <i class="bi bi-check-circle-fill me-2 text-success"></i>
+                        Unlimited courses
+                    </li>
+                    <li class="list-group-item border-0 ps-0">
+                        <i class="bi bi-check-circle-fill me-2 text-success"></i>
+                        Detailed sync history
+                    </li>
+                    <li class="list-group-item border-0 ps-0">
+                        <i class="bi bi-check-circle-fill me-2 text-success"></i>
+                        Priority email support
+                    </li>
+                    <li class="list-group-item border-0 ps-0">
+                        <i class="bi bi-check-circle-fill me-2 text-success"></i>
+                        <strong>Cancel anytime</strong>
+                    </li>
+                </ul>
+                
+                {% if current_user.is_authenticated %}
+                    {% if current_user.is_premium %}
+                        <div class="alert alert-success">
+                            <i class="bi bi-check-circle me-2"></i>You have premium access!
+                        </div>
+                        <div class="d-grid">
+                            <a href="{{ url_for('stripe.manage_subscription') }}" 
+                               class="btn btn-outline-primary" 
+                               id="manage-subscription-btn">
+                                <i class="bi bi-gear me-2"></i>Manage Subscription
+                            </a>
+                        </div>
+                    {% else %}
+                        <form action="{{ url_for('stripe.create_checkout_session') }}" method="POST" id="payment-form">
+                            <input type="hidden" name="price_id" id="price-id" value="{{ stripe_monthly_price_id }}">
+                            <div class="d-grid">
+                                <button type="submit" class="btn btn-primary" id="checkout-button">
+                                    <i class="bi bi-credit-card me-2"></i>Start {{ trial_days }}-Day Free Trial
+                                </button>
+                            </div>
+                        </form>
+                    {% endif %}
+                {% else %}
+                    <div class="d-grid">
+                        <a href="{{ url_for('register') }}" class="btn btn-primary">Sign Up & Start Free Trial</a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-5">
+    <div class="col-md-12 text-center">
+        <h3>Frequently Asked Questions</h3>
+    </div>
+</div>
+
+<div class="row justify-content-center mt-4">
+    <div class="col-lg-8">
+        <div class="accordion" id="accordionFAQ">
+            <div class="accordion-item">
+                <h2 class="accordion-header">
+                    <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseOne">
+                        How does the free trial work?
+                    </button>
+                </h2>
+                <div id="collapseOne" class="accordion-collapse collapse show" data-bs-parent="#accordionFAQ">
+                    <div class="accordion-body">
+                        You'll get {{ trial_days }} days to try all premium features completely free. No credit card is required until your trial ends. After the trial, you'll be charged the subscription price you selected (monthly or yearly).
+                    </div>
+                </div>
+            </div>
+            
+            <div class="accordion-item">
+                <h2 class="accordion-header">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTwo">
+                        Can I cancel my subscription anytime?
+                    </button>
+                </h2>
+                <div id="collapseTwo" class="accordion-collapse collapse" data-bs-parent="#accordionFAQ">
+                    <div class="accordion-body">
+                        Yes! You can cancel your subscription at any time. You'll continue to have premium access until the end of your current billing period.
+                    </div>
+                </div>
+            </div>
+            
+            <div class="accordion-item">
+                <h2 class="accordion-header">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseThree">
+                        How often does automatic sync run?
+                    </button>
+                </h2>
+                <div id="collapseThree" class="accordion-collapse collapse" data-bs-parent="#accordionFAQ">
+                    <div class="accordion-body">
+                        Premium users can configure automatic sync to run hourly, daily, or weekly depending on their preferences.
+                    </div>
+                </div>
+            </div>
+            
+            <div class="accordion-item">
+                <h2 class="accordion-header">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseFour">
+                        How is my payment processed?
+                    </button>
+                </h2>
+                <div id="collapseFour" class="accordion-collapse collapse" data-bs-parent="#accordionFAQ">
+                    <div class="accordion-body">
+                        All payments are securely processed by <a href="https://stripe.com" target="_blank">Stripe</a>. We never store your credit card information on our servers.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log("Pricing page loaded - initializing toggle");
+        
+        const billingToggle = document.getElementById('billing-toggle');
+        const priceDisplay = document.getElementById('price-display');
+        const priceIdInput = document.getElementById('price-id');
+        const monthlyLabel = document.getElementById('monthly-label');
+        const yearlyLabel = document.getElementById('yearly-label');
+        const saveLabel = document.getElementById('save-label');
+        const manageButton = document.getElementById('manage-subscription-btn');
+        const checkoutButton = document.getElementById('checkout-button');
+        
+        // Set initial display
+        if (billingToggle) {
+            updatePriceDisplay();
+            
+            // Listen for toggle changes
+            billingToggle.addEventListener('change', function() {
+                console.log("Toggle changed to: " + (billingToggle.checked ? "Yearly" : "Monthly"));
+                updatePriceDisplay();
+            });
+        }
+        
+        function updatePriceDisplay() {
+            const isYearly = billingToggle.checked;
+            
+            // Update price display
+            if (priceDisplay) {
+                if (isYearly) {
+                    priceDisplay.innerHTML = '$' + yearlyPrice + '<span class="fs-5">/year</span>';
+                } else {
+                    priceDisplay.innerHTML = '$' + monthlyPrice + '<span class="fs-5">/month</span>';
+                }
+            }
+            
+            // Update hidden input (for non-premium users)
+            if (priceIdInput) {
+                priceIdInput.value = isYearly ? yearlyPriceId : monthlyPriceId;
+            }
+            
+            // Update checkout button text (if it exists)
+            if (checkoutButton) {
+                if (isYearly) {
+                    checkoutButton.innerHTML = '<i class="bi bi-credit-card me-2"></i>Start {{ trial_days }}-Day Free Trial (Yearly)';
+                } else {
+                    checkoutButton.innerHTML = '<i class="bi bi-credit-card me-2"></i>Start {{ trial_days }}-Day Free Trial (Monthly)';
+                }
+            }
+            
+            // Update toggle appearance
+            if (isYearly) {
+                yearlyLabel.classList.add('fw-bold', 'text-primary');
+                monthlyLabel.classList.remove('fw-bold', 'text-primary');
+                saveLabel.style.display = 'inline';
+            } else {
+                monthlyLabel.classList.add('fw-bold', 'text-primary');
+                yearlyLabel.classList.remove('fw-bold', 'text-primary');
+                saveLabel.style.display = 'none';
+            }
+        }
+    });
+</script>
+{% endblock %}

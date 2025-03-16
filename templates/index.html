@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% block title %}Canvas-Todoist Sync - Never Miss a Deadline{% endblock %}
+{% block content %}
+<div class="row align-items-center py-5">
+    <div class="col-lg-6">
+        <h1 class="display-4 fw-bold mb-4">Never miss a deadline again!</h1>
+        <p class="lead mb-4">Automatically sync your Canvas LMS assignments to your Todoist task list and stay on top of all your academic responsibilities.</p>
+        
+        {% if current_user.is_authenticated %}
+            <a href="{{ url_for('dashboard') }}" class="btn btn-primary btn-lg">
+                <i class="bi bi-speedometer2 me-2"></i>Go to Dashboard
+            </a>
+        {% else %}
+            <a href="{{ url_for('register') }}" class="btn btn-primary btn-lg me-2">
+                <i class="bi bi-person-plus me-2"></i>Get Started
+            </a>
+            <a href="{{ url_for('login') }}" class="btn btn-outline-primary btn-lg">
+                <i class="bi bi-box-arrow-in-right me-2"></i>Login
+            </a>
+        {% endif %}
+    </div>
+    <div class="col-lg-6">
+        <img src="https://images.unsplash.com/photo-1606761568499-6d2451b23c66?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1074&q=80" class="img-fluid rounded shadow-lg" alt="Student using laptop">
+    </div>
+</div>
+
+<div class="row py-5">
+    <div class="col-12 text-center mb-5">
+        <h2 class="fw-bold">Why Canvas-Todoist Sync?</h2>
+        <p class="text-muted">Our app bridges the gap between your learning management system and productivity toolkit</p>
+    </div>
+    
+    <div class="col-md-4 mb-4">
+        <div class="card h-100 border-0 shadow-sm">
+            <div class="card-body text-center p-4">
+                <div class="icon-circle bg-primary text-white mb-4">
+                    <i class="bi bi-arrow-repeat"></i>
+                </div>
+                <h4 class="fw-bold">One-Click Sync</h4>
+                <p class="text-muted">Automatically sync your Canvas assignments to Todoist with just one click.</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4 mb-4">
+        <div class="card h-100 border-0 shadow-sm">
+            <div class="card-body text-center p-4">
+                <div class="icon-circle bg-success text-white mb-4">
+                    <i class="bi bi-list-check"></i>
+                </div>
+                <h4 class="fw-bold">Everything in One Place</h4>
+                <p class="text-muted">Keep all your academic tasks alongside your personal to-dos in one organized system.</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4 mb-4">
+        <div class="card h-100 border-0 shadow-sm">
+            <div class="card-body text-center p-4">
+                <div class="icon-circle bg-info text-white mb-4">
+                    <i class="bi bi-bell"></i>
+                </div>
+                <h4 class="fw-bold">Smart Reminders</h4>
+                <p class="text-muted">Get reminders and notifications for upcoming assignments through Todoist.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.icon-circle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    font-size: 1.5rem;
+}
+</style>
+{% endblock %}
