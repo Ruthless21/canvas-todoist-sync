@@ -16,6 +16,7 @@ from config import config
 import stripe
 from stripe_routes import stripe_bp
 import stripe_config
+import socket
 
 # Load environment variables
 load_dotenv()
@@ -628,8 +629,10 @@ def create_app(config_name='default'):
     with app.app_context():
         db.create_all()
     
-    # Start the scheduler
-    scheduler.start()
+    # Only start the scheduler if not running on PythonAnywhere or explicitly in development mode
+    if env == 'development' or 'pythonanywhere' not in socket.gethostname():
+        # Start the scheduler - this is disabled on PythonAnywhere as we use custom_scheduler.py instead
+        scheduler.start()
     
     return app
 
