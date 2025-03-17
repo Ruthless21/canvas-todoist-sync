@@ -3,7 +3,7 @@ Main blueprint.
 Handles the main landing page and other general routes.
 """
 
-from flask import render_template, flash, redirect, url_for, current_app
+from flask import render_template, flash, redirect, url_for, current_app, session
 from flask_login import current_user, login_required
 from blueprints import main_bp
 from models import User
