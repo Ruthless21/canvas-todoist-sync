@@ -109,6 +109,15 @@ def create_app(config_name='default'):
             os.makedirs(cache_dir, exist_ok=True)
             print(f"Created cache directory at {cache_dir}")
     
+    # Configure SQLAlchemy connection pooling for PythonAnywhere
+    app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
+        'pool_recycle': 240,  # Less than PythonAnywhere's 300s timeout
+        'pool_pre_ping': True,  # Test connections before using them
+        'pool_timeout': 30,    # Don't wait too long for connections
+        'pool_size': 10,       # Default pool size
+        'max_overflow': 5      # Allow some extra connections
+    }
+    
     # Initialize extensions with app
     db.init_app(app)
     login_manager = LoginManager(app)
@@ -116,6 +125,11 @@ def create_app(config_name='default'):
     login_manager.login_message = 'Please log in to access this page.'
     scheduler.init_app(app)
     cache.init_app(app)
+    
+    # Setup database session cleanup after each request
+    @app.teardown_appcontext
+    def shutdown_session(exception=None):
+        db.session.remove()
     
     # Register blueprints
     app.register_blueprint(stripe_bp)
@@ -163,56 +177,60 @@ def create_app(config_name='default'):
     @scheduler.task('interval', id='sync_assignments', seconds=60*15)  # Run every 15 minutes
     def scheduled_sync():
         with app.app_context():
-            now = datetime.utcnow()
-            
-            # Get all enabled sync settings
-            settings = SyncSettings.query.filter_by(enabled=True).all()
-            
-            for setting in settings:
-                user = User.query.get(setting.user_id)
+            try:
+                now = datetime.utcnow()
                 
-                # Skip if user is not premium
-                if not user.is_premium:
-                    continue
-                    
-                # Check if it's time to sync based on frequency
-                should_sync = False
+                # Get all enabled sync settings
+                settings = SyncSettings.query.filter_by(enabled=True).all()
                 
-                if setting.last_sync is None:
-                    should_sync = True
-                elif setting.frequency == 'hourly' and (now - setting.last_sync).total_seconds() >= 3600:
-                    should_sync = True
-                elif setting.frequency == 'daily' and (now - setting.last_sync).total_seconds() >= 86400:
-                    should_sync = True
-                elif setting.frequency == 'weekly' and (now - setting.last_sync).total_seconds() >= 604800:
-                    should_sync = True
+                for setting in settings:
+                    user = User.query.get(setting.user_id)
                     
-                if should_sync:
-                    try:
-                        # Initialize API clients for the user
-                        canvas_api_client = CanvasAPI(
-                            api_url=user.canvas_api_url,
-                            api_token=user.get_canvas_api_token()
-                        )
-                        todoist_client = TodoistClient(
-                            api_token=user.get_todoist_api_key()
-                        )
-                        sync_service_client = SyncService(canvas_api_client, todoist_client)
+                    # Skip if user is not premium
+                    if not user.is_premium:
+                        continue
                         
-                        # Get all courses
-                        courses = canvas_api_client.get_courses()
+                    # Check if it's time to sync based on frequency
+                    should_sync = False
+                    
+                    if setting.last_sync is None:
+                        should_sync = True
+                    elif setting.frequency == 'hourly' and (now - setting.last_sync).total_seconds() >= 3600:
+                        should_sync = True
+                    elif setting.frequency == 'daily' and (now - setting.last_sync).total_seconds() >= 86400:
+                        should_sync = True
+                    elif setting.frequency == 'weekly' and (now - setting.last_sync).total_seconds() >= 604800:
+                        should_sync = True
                         
-                        # Sync assignments for each course
-                        for course in courses:
-                            sync_service_client.sync_course_assignments(course['id'])
-                        
-                        # Update last sync time
-                        setting.last_sync = now
-                        db.session.commit()
-                        
-                        app.logger.info(f"Automatic sync completed for user {user.username}")
-                    except Exception as e:
-                        app.logger.error(f"Error syncing for user {user.username}: {str(e)}")
+                    if should_sync:
+                        try:
+                            # Initialize API clients for the user
+                            canvas_api_client = CanvasAPI(
+                                api_url=user.canvas_api_url,
+                                api_token=user.get_canvas_api_token()
+                            )
+                            todoist_client = TodoistClient(
+                                api_token=user.get_todoist_api_key()
+                            )
+                            sync_service_client = SyncService(canvas_api_client, todoist_client)
+                            
+                            # Get all courses
+                            courses = canvas_api_client.get_courses()
+                            
+                            # Sync assignments for each course
+                            for course in courses:
+                                sync_service_client.sync_course_assignments(course['id'])
+                            
+                            # Update last sync time
+                            setting.last_sync = now
+                            db.session.commit()
+                            
+                            app.logger.info(f"Automatic sync completed for user {user.username}")
+                        except Exception as e:
+                            app.logger.error(f"Error syncing for user {user.username}: {str(e)}")
+            finally:
+                # Ensure database connections are properly closed
+                db.session.remove()
     
     # ----- ROUTES -----
     
@@ -517,6 +535,9 @@ def create_app(config_name='default'):
             db.session.commit()
     
             return jsonify({'error': str(e)}), 500
+        finally:
+            # Ensure database connections are properly closed
+            db.session.close()
     
     @app.route('/api/sync_todo', methods=['POST'])
     @login_required
@@ -536,6 +557,9 @@ def create_app(config_name='default'):
             })
         except Exception as e:
             return jsonify({'error': str(e)}), 500
+        finally:
+            # Ensure database connections are properly closed
+            db.session.close()
     
     @app.route('/api/refresh_data', methods=['POST'])
     @login_required
@@ -555,6 +579,9 @@ def create_app(config_name='default'):
             })
         except Exception as e:
             return jsonify({'error': str(e)}), 500
+        finally:
+            # Ensure database connections are properly closed
+            db.session.close()
     
     @app.before_request
     def get_apis():
@@ -624,13 +651,29 @@ def create_app(config_name='default'):
             db.session.commit()
     
             return jsonify({'error': str(e)}), 500
+        finally:
+            # Ensure database connections are properly closed
+            db.session.close()
     
     # Create database tables before first request
     with app.app_context():
         db.create_all()
+        
+        # Clean up any existing MySQL connections - this helps when redeploying
+        try:
+            # Force SQLAlchemy to create a fresh connection pool
+            db.engine.dispose()
+            print("Database connection pool refreshed at startup")
+        except Exception as e:
+            print(f"Warning: Could not refresh connection pool: {str(e)}")
+    
+    # Determine the current environment
+    def is_pythonanywhere():
+        """Check if running on PythonAnywhere"""
+        return 'pythonanywhere' in socket.gethostname().lower()
     
     # Only start the scheduler if not running on PythonAnywhere or explicitly in development mode
-    if env == 'development' or 'pythonanywhere' not in socket.gethostname():
+    if config_name == 'development' or not is_pythonanywhere():
         # Start the scheduler - this is disabled on PythonAnywhere as we use custom_scheduler.py instead
         scheduler.start()
     
