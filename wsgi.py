@@ -5,6 +5,8 @@ This file serves as the entry point for both development and production environm
 
 import os
 import sys
+import logging
+from logging import FileHandler, WARNING
 
 # Add the project directory to the Python path
 project_path = '/home/TatumParr/canvas-todoist-sync'
@@ -13,6 +15,11 @@ if project_path not in sys.path:
 
 # Change working directory to ensure relative paths work
 os.chdir(project_path)
+
+# Set up error logging
+log_file = os.path.join(project_path, 'flask_error.log')
+file_handler = FileHandler(log_file)
+file_handler.setLevel(WARNING)
 
 # Load environment variables
 from dotenv import load_dotenv
@@ -24,6 +31,9 @@ from app import create_app
 # Create the application instance with pythonanywhere config
 application = create_app('pythonanywhere')
 
+# Add the file handler to the application logger
+application.logger.addHandler(file_handler)
+
 # Print debug information
 print("WSGI file loaded")
 print(f"Python version: {sys.version}")
@@ -32,6 +42,7 @@ print(f"Python path: {sys.path}")
 print(f"Environment: {os.environ.get('FLASK_ENV', 'production')}")
 print(f"Project path exists: {os.path.exists(project_path)}")
 print(f"Templates path exists: {os.path.exists(os.path.join(project_path, 'templates'))}")
+print(f"Log file path: {log_file}")
 
 # List all registered routes for debugging
 print("\nRegistered routes:")
