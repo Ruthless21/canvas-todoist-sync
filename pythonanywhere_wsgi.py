@@ -32,6 +32,21 @@ db_password = 'FEo3f5gBOpIZF'  # ← REPLACE THIS with your ACTUAL MySQL passwor
 db_name = 'TatumParr$canvas_todoist'  # Format must be username$dbname
 db_host = 'TatumParr.mysql.pythonanywhere-services.com'  # Standard host format
 
+# Test direct connection to verify credentials
+try:
+    import MySQLdb
+    print("Testing direct MySQL connection...")
+    conn = MySQLdb.connect(
+        user=db_username,
+        passwd=db_password,
+        host=db_host,
+        db=db_name
+    )
+    print("✓ Direct MySQL connection successful!")
+    conn.close()
+except Exception as e:
+    print(f"× Warning: Could not connect directly to MySQL: {str(e)}")
+
 # Construct and set the database URL
 os.environ['DATABASE_URL'] = f"mysql+mysqldb://{db_username}:{db_password}@{db_host}/{db_name}"
 print(f"Set DATABASE_URL for MySQL connection to {db_host}")

@@ -7,6 +7,7 @@ import os
 import sys
 import time
 import traceback
+import socket
 from dotenv import load_dotenv
 
 # Load environment variables
@@ -17,6 +18,19 @@ project_folder = os.path.dirname(os.path.abspath(__file__))
 if project_folder not in sys.path:
     sys.path.insert(0, project_folder)
 
+# 1. Set environment variables just like in the WSGI file
+os.environ['FLASK_ENV'] = 'pythonanywhere'
+
+# 2. Set up MySQL database URL for PythonAnywhere - this mimics pythonanywhere_wsgi.py
+db_username = 'TatumParr'  # Your PythonAnywhere username
+db_password = 'FEo3f5gBOpIZF'  # Your MySQL password
+db_name = 'TatumParr$canvas_todoist'  # Format must be username$dbname
+db_host = 'TatumParr.mysql.pythonanywhere-services.com'  # Standard host format
+
+# 3. Construct and set the database URL
+os.environ['DATABASE_URL'] = f"mysql+mysqldb://{db_username}:{db_password}@{db_host}/{db_name}"
+print(f"Set DATABASE_URL for MySQL connection to {db_host}")
+
 def test_direct_mysqldb_connection():
     """Test direct connection to MySQL using MySQLdb"""
     try:
@@ -24,11 +38,6 @@ def test_direct_mysqldb_connection():
         print("MySQLdb is installed correctly")
 
         # Get connection details from environment variables
-        db_username = 'TatumParr'  # Your PythonAnywhere username
-        db_password = 'FEo3f5gBOpIZF'  # Your MySQL password
-        db_name = 'TatumParr$canvas_todoist'  # Format must be username$dbname
-        db_host = 'TatumParr.mysql.pythonanywhere-services.com'  # Standard host format
-
         print(f"Connecting to MySQL database: {db_name} on {db_host}")
         conn = MySQLdb.connect(
             user=db_username,
@@ -63,15 +72,9 @@ def test_sqlalchemy_connection():
         from sqlalchemy import create_engine, text
         print("SQLAlchemy is installed correctly")
         
-        # Get connection details from environment variables
-        db_username = 'TatumParr'  # Your PythonAnywhere username
-        db_password = 'FEo3f5gBOpIZF'  # Your MySQL password
-        db_name = 'TatumParr$canvas_todoist'  # Format must be username$dbname
-        db_host = 'TatumParr.mysql.pythonanywhere-services.com'  # Standard host format
-        
-        # Create the connection URL
-        db_url = f"mysql+mysqldb://{db_username}:{db_password}@{db_host}/{db_name}"
-        print(f"Connecting to SQLAlchemy engine with URL: {db_url.replace(db_password, '********')}")
+        # Use the environment variable that's working for Flask
+        db_url = os.environ.get('DATABASE_URL')
+        print(f"Using DATABASE_URL from environment: {db_url.replace(db_password, '********')}")
         
         # Create engine with proper connection pooling settings
         engine = create_engine(
@@ -162,6 +165,8 @@ if __name__ == "__main__":
     print("2. Connection with SQLAlchemy")
     print("3. Connection through your Flask application")
     print("=" * 60)
+    print(f"Using DATABASE_URL: {os.environ.get('DATABASE_URL', 'Not set').replace(db_password, '********')}")
+    print("-" * 60)
     
     # Run tests
     direct_success = test_direct_mysqldb_connection()
