@@ -103,6 +103,13 @@ def create_app(config_name='default'):
     # Load the appropriate configuration
     app.config.from_object(config[config_name])
     
+    # Add scheduler configuration
+    app.config['SCHEDULER_API_ENABLED'] = True
+    app.config['SCHEDULER_JOB_DEFAULTS'] = {
+        'coalesce': False,
+        'max_instances': 1
+    }
+    
     # Initialize extensions
     db.init_app(app)
     login_manager.init_app(app)

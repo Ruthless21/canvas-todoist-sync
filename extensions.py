@@ -18,15 +18,9 @@ migrate = Migrate()
 cache = Cache()
 csrf = CSRFProtect()
 
-# Configure scheduler for uWSGI compatibility
+# Initialize scheduler with configuration
 scheduler = APScheduler()
-scheduler.configure(
-    SCHEDULER_API_ENABLED=True,
-    SCHEDULER_JOB_DEFAULTS={
-        'coalesce': False,
-        'max_instances': 1
-    }
-)
+# Configuration will be applied in app.py using app.config
 
 # Configure login manager
 login_manager.login_view = 'auth.login'
