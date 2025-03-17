@@ -20,7 +20,6 @@ from datetime import datetime, timedelta
 import stripe
 import socket
 from config import Config, config
-from flask_session import Session
 
 # Load environment variables
 load_dotenv()
@@ -141,9 +140,8 @@ def create_app(config_name='default'):
     app.config['SESSION_COOKIE_SECURE'] = True  # Only send cookie over HTTPS
     app.config['SESSION_COOKIE_HTTPONLY'] = True  # Prevent JavaScript access
     app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'  # CSRF protection
-    app.config['SESSION_TYPE'] = 'filesystem'  # Use filesystem session storage
-    app.config['SESSION_FILE_DIR'] = 'flask_session'  # Directory for session files
-    app.config['SESSION_KEY_PREFIX'] = 'canvas_todoist_'  # Session key prefix for storage
+    app.config['SESSION_TYPE'] = 'null'  # Use Flask's default session implementation instead of filesystem
+    app.config['SECRET_KEY'] = app.config['SECRET_KEY']  # Reuse the same secret key
     
     # Configure Flask-Login session protection
     login_manager.session_protection = 'strong'
@@ -158,9 +156,6 @@ def create_app(config_name='default'):
     cache.init_app(app)
     csrf.init_app(app)
     scheduler.init_app(app)
-    
-    # Initialize Flask-Session
-    Session(app)
     
     # Configure login manager
     login_manager.login_view = 'auth.login'
