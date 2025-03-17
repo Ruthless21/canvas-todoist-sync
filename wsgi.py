@@ -4,13 +4,19 @@ This file serves as the entry point for both development and production environm
 """
 
 import os
+import sys
 from dotenv import load_dotenv
-from app import create_app
+
+# Add the project directory to the Python path
+path = os.path.dirname(os.path.abspath(__file__))
+if path not in sys.path:
+    sys.path.append(path)
 
 # Load environment variables
 load_dotenv()
 
 # Create the application instance
+from app import create_app
 app = create_app()
 
 if __name__ == '__main__':

@@ -6,7 +6,7 @@ Contains all form classes for the application.
 from flask_wtf import FlaskForm
 from wtforms import StringField, PasswordField, BooleanField, SelectField, TextAreaField
 from wtforms.validators import DataRequired, Email, Length, EqualTo, ValidationError
-from ..models import User
+from models import User
 
 class LoginForm(FlaskForm):
     """Login form."""

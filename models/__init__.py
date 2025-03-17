@@ -6,8 +6,8 @@ Contains all database models for the application.
 from datetime import datetime
 from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
-from .. import db, login_manager
-from ..utils import encrypt_data, decrypt_data
+from app import db, login_manager
+from utils import encrypt_data, decrypt_data
 
 class User(UserMixin, db.Model):
     """User model."""

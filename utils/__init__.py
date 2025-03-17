@@ -6,10 +6,10 @@ Contains utility functions for the application.
 import os
 import logging
 from cryptography.fernet import Fernet
-from ..config import SECRET_KEY
-from ..models import User
-from ..services.canvas_api import CanvasAPI
-from ..services.todoist_api import TodoistAPI
+from config import SECRET_KEY
+from models import User
+from services.canvas_api import CanvasAPI
+from services.todoist_api import TodoistAPI
 
 # Configure logging
 logging.basicConfig(

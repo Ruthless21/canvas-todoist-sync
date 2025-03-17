@@ -17,7 +17,7 @@ from functools import wraps
 from datetime import datetime, timedelta
 from flask_apscheduler import APScheduler
 from flask_caching import Cache
-from config import config
+from config import Config
 import stripe
 from stripe_routes import stripe_bp
 import stripe_config
@@ -114,7 +114,7 @@ def get_cached_todoist_projects(api_client):
 def create_app(config_name='default'):
     """Create and configure the Flask application."""
     app = Flask(__name__)
-    app.config.from_object(config[config_name])
+    app.config.from_object(Config[config_name])
     
     # Initialize extensions
     db.init_app(app)
