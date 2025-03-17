@@ -44,15 +44,19 @@ def premium_required(f):
 # API client initialization helper
 def get_api_clients():
     if current_user.is_authenticated:
-        canvas_api_client = CanvasAPI(
-            api_url=current_user.canvas_api_url,
-            api_token=current_user.get_canvas_api_token()
-        )
-        todoist_client = TodoistClient(
-            api_token=current_user.get_todoist_api_key()
-        )
-        sync_service_client = SyncService(canvas_api_client, todoist_client)
-        return canvas_api_client, todoist_client, sync_service_client
+        try:
+            canvas_api_client = CanvasAPI(
+                api_url=current_user.canvas_api_url,
+                api_token=current_user.get_canvas_api_token()
+            )
+            todoist_client = TodoistClient(
+                api_token=current_user.get_todoist_api_key()
+            )
+            sync_service_client = SyncService(canvas_api_client, todoist_client)
+            return canvas_api_client, todoist_client, sync_service_client
+        except ValueError:
+            # If API credentials are missing, redirect to API credentials page
+            return None, None, None
     return None, None, None
 
 # API functions
@@ -287,6 +291,11 @@ def create_app(config_name='default'):
     def dashboard():
         try:
             canvas_api_client, todoist_client, sync_service_client = get_api_clients()
+            
+            # Check if API clients are configured
+            if canvas_api_client is None or todoist_client is None:
+                flash('Please set up your Canvas and Todoist API credentials to use the dashboard features.', 'warning')
+                return redirect(url_for('api_credentials'))
             
             # Use cached functions instead of direct API calls
             courses = get_cached_canvas_courses(canvas_api_client)
@@ -587,13 +596,18 @@ def create_app(config_name='default'):
     def get_apis():
         """Initialize API clients if a user is logged in."""
         if current_user.is_authenticated:
-            g.canvas_api = CanvasAPI(
-                api_url=current_user.canvas_api_url,
-                api_token=current_user.get_canvas_api_token()
-            )
-            g.todoist_api = TodoistClient(
-                api_token=current_user.get_todoist_api_key()
-            )
+            try:
+                g.canvas_api = CanvasAPI(
+                    api_url=current_user.canvas_api_url,
+                    api_token=current_user.get_canvas_api_token()
+                )
+                g.todoist_api = TodoistClient(
+                    api_token=current_user.get_todoist_api_key()
+                )
+            except ValueError:
+                # If APIs aren't configured yet, set them to None
+                g.canvas_api = None
+                g.todoist_api = None
     
     @app.route('/sync-now')
     @login_required
