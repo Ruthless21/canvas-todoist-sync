@@ -28,8 +28,8 @@ class Config:
     PERMANENT_SESSION_LIFETIME = timedelta(days=7)
     
     # Security configuration
-    SESSION_COOKIE_SECURE = True
-    REMEMBER_COOKIE_SECURE = True
+    SESSION_COOKIE_SECURE = os.environ.get('FLASK_ENV') == 'production'
+    REMEMBER_COOKIE_SECURE = os.environ.get('FLASK_ENV') == 'production'
     SESSION_COOKIE_HTTPONLY = True
     REMEMBER_COOKIE_HTTPONLY = True
     
