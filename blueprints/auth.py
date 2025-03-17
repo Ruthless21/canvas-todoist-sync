@@ -36,9 +36,9 @@ def login():
         current_app.logger.debug('Processing POST request')
         current_app.logger.debug('Form data before validation: %s', {field.name: field.data for field in form})
         
-        # Explicitly validate the form with CSRF disabled first for debugging
-        csrf_valid = form.validate_csrf_token(form.csrf_token)
-        current_app.logger.debug('CSRF token valid: %s', csrf_valid)
+        # Log CSRF token information for debugging
+        current_app.logger.debug('Form CSRF token value: %s', form.csrf_token.data)
+        current_app.logger.debug('Session CSRF token: %s', session.get('csrf_token'))
         
         current_app.logger.debug('Form validation status: %s', form.validate())
         current_app.logger.debug('Form errors: %s', form.errors)
