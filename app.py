@@ -123,16 +123,7 @@ def create_app(config_name='default'):
     login_manager.login_message = 'Please log in to access this page.'
     login_manager.login_message_category = 'info'
     
-    # Register blueprints
-    from blueprints import auth_bp, dashboard_bp, settings_bp, admin_bp, sync_bp, payments_bp
-    app.register_blueprint(auth_bp, url_prefix='/auth')
-    app.register_blueprint(dashboard_bp, url_prefix='/dashboard')
-    app.register_blueprint(settings_bp, url_prefix='/settings')
-    app.register_blueprint(admin_bp, url_prefix='/admin')
-    app.register_blueprint(sync_bp, url_prefix='/sync')
-    app.register_blueprint(payments_bp, url_prefix='/payments')
-    
-    # Define root route
+    # Define root route before registering blueprints
     @app.route('/')
     def index():
         """Display the home page."""
@@ -149,6 +140,15 @@ def create_app(config_name='default'):
         """Handle 500 errors."""
         db.session.rollback()
         return render_template('errors/500.html'), 500
+    
+    # Register blueprints
+    from blueprints import auth_bp, dashboard_bp, settings_bp, admin_bp, sync_bp, payments_bp
+    app.register_blueprint(auth_bp, url_prefix='/auth')
+    app.register_blueprint(dashboard_bp, url_prefix='/dashboard')
+    app.register_blueprint(settings_bp, url_prefix='/settings')
+    app.register_blueprint(admin_bp, url_prefix='/admin')
+    app.register_blueprint(sync_bp, url_prefix='/sync')
+    app.register_blueprint(payments_bp, url_prefix='/payments')
     
     # Initialize Stripe
     stripe.api_key = app.config['STRIPE_SECRET_KEY']
