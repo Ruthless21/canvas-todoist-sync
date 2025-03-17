@@ -86,6 +86,33 @@ class User(UserMixin, db.Model):
         
         db.session.commit()
 
+class SyncSettings(db.Model):
+    """Model for storing sync settings."""
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    sync_frequency = db.Column(db.String(20), default='daily')
+    sync_time = db.Column(db.String(5), default='00:00')
+    last_sync = db.Column(db.DateTime)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relationships
+    user = db.relationship('User', backref=db.backref('sync_settings', uselist=False))
+
+class SyncHistory(db.Model):
+    """Model for storing sync history."""
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    sync_type = db.Column(db.String(20), nullable=False)  # 'manual' or 'automatic'
+    status = db.Column(db.String(20), nullable=False)  # 'success' or 'failed'
+    items_synced = db.Column(db.Integer, default=0)
+    error_message = db.Column(db.Text)
+    started_at = db.Column(db.DateTime, nullable=False)
+    completed_at = db.Column(db.DateTime)
+    
+    # Relationships
+    user = db.relationship('User', backref=db.backref('sync_history', lazy='dynamic'))
+
 @login_manager.user_loader
 def load_user(id):
     """Load user for Flask-Login."""
