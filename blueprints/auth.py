@@ -18,7 +18,7 @@ def url_parse(url):
 @auth_bp.route('/login', methods=['GET', 'POST'])
 def login():
     """Handle user login."""
-    # If user is already logged in, redirect to main page
+    # If user is already authenticated, redirect to dashboard
     if current_user.is_authenticated:
         current_app.logger.debug('User already authenticated: %s', current_user.username)
         return redirect(url_for('main.index'))
@@ -26,45 +26,43 @@ def login():
     form = LoginForm()
     
     if form.validate_on_submit():
-        # Get the user from database
+        current_app.logger.debug('Login form submitted and validated')
         user = User.query.filter_by(username=form.username.data).first()
         
-        # Check user exists and password is correct
         if user is None or not user.check_password(form.password.data):
+            current_app.logger.debug('Login failed: Invalid credentials')
             flash('Invalid username or password', 'danger')
-            return render_template('login.html', title='Sign In', form=form)
+            return redirect(url_for('auth.login'))
         
-        # Clear existing session data to avoid conflicts
+        # Clear session first to avoid issues
         session.clear()
         
-        # Set session to be permanent (according to PERMANENT_SESSION_LIFETIME)
+        # Store user ID directly in session for better reliability
+        session['user_id'] = user.id
+        session['_user_id'] = user.id  # Flask-Login uses this key
+        
+        # Set session permanent
         session.permanent = True
         
-        # Log the user in
+        # Login user
         login_success = login_user(user, remember=form.remember_me.data)
-        current_app.logger.debug('Login_user result: %s', login_success)
-        
-        # Store important session vars directly (belt and suspenders approach)
-        session['user_id'] = user.id
-        session['_user_id'] = user.id  # Flask-Login key
+        current_app.logger.debug('login_user() result: %s', login_success)
         
         # Update last login time
         user.last_login = datetime.utcnow()
         db.session.commit()
         
-        # Create success message
+        current_app.logger.debug('Current authentication status: %s', current_user.is_authenticated)
+        current_app.logger.debug('Session data: %s', dict(session))
+        
+        # Show success message
         flash('Login successful!', 'success')
         
-        # Force a session save
-        session.modified = True
-        
-        current_app.logger.debug('User authenticated as: %s', current_user.is_authenticated)
-        current_app.logger.debug('Session contains: %s', dict(session))
-        
-        # Simply redirect to main page first
+        # Redirect to the home page
+        current_app.logger.debug('Redirecting to index page after successful login')
         return redirect(url_for('main.index'))
-    
-    return render_template('login.html', title='Sign In', form=form)
+        
+    return render_template('auth/login.html', title='Sign In', form=form)
 
 @auth_bp.route('/logout')
 @login_required

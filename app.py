@@ -147,7 +147,7 @@ def create_app(config_name='default'):
     login_manager.login_view = 'auth.login'
     login_manager.login_message = 'Please log in to access this page.'
     login_manager.login_message_category = 'info'
-    login_manager.session_protection = None  # Disable session protection temporarily to diagnose issues
+    login_manager.session_protection = None  # Disable strict session protection temporarily
     
     # Debug mode configuration
     app.debug = True  # Enable debug mode
@@ -191,7 +191,6 @@ def create_app(config_name='default'):
                 user = User.query.get(user_id)
                 if user:
                     login_user(user)
-                    session.modified = True
                     app.logger.debug('Restored user session for: %s', user.username)
                 
         # After request handler to ensure session is saved
@@ -200,18 +199,9 @@ def create_app(config_name='default'):
             # Always save the session
             session.modified = True
             
-            # Add debug logging for response
-            app.logger.debug('Response status: %s', response.status_code)
-            app.logger.debug('Response headers: %s', response.headers)
-            
-            # For redirect responses, be extra careful
-            if response.status_code in (301, 302, 303, 307, 308):
-                app.logger.debug('Processing redirect response to: %s', response.headers.get('Location'))
-            
-            # Delete old session cookie if needed, but don't mess with redirects
+            # Delete the old cookie if needed
             if hasattr(g, 'delete_old_cookie') and g.delete_old_cookie:
                 response.delete_cookie('canvas_todoist_session')
-                app.logger.debug('Deleted old canvas_todoist_session cookie in after_request')
             
             return response
 
