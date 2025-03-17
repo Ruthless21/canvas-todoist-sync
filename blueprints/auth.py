@@ -3,12 +3,13 @@ Authentication blueprint.
 Handles user login, registration, and logout functionality.
 """
 
-from flask import render_template, redirect, url_for, flash, request
+from flask import render_template, redirect, url_for, flash, request, session, current_app
 from flask_login import login_user, logout_user, login_required, current_user
 from urllib.parse import urlparse
 from blueprints import auth_bp
 from forms import LoginForm, RegistrationForm
 from models import User, db
+from datetime import datetime
 
 def url_parse(url):
     """Parse URL for security checks."""
@@ -27,11 +28,25 @@ def login():
             flash('Invalid username or password', 'danger')
             return redirect(url_for('auth.login'))
         
+        # Set session permanent to use PERMANENT_SESSION_LIFETIME
+        session.permanent = True
         login_user(user, remember=form.remember_me.data)
+        
+        # Update last login time
+        user.last_login = datetime.utcnow()
+        db.session.commit()
+        
         next_page = request.args.get('next')
         if not next_page or url_parse(next_page).netloc != '':
             next_page = url_for('dashboard.index')
+        
+        # Log successful login
+        current_app.logger.info(f'User {user.username} logged in successfully')
         return redirect(next_page)
+    
+    # Log form errors if any
+    if form.errors:
+        current_app.logger.warning(f'Login form errors: {form.errors}')
     
     return render_template('login.html', title='Sign In', form=form)
 

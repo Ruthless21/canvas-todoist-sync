@@ -110,6 +110,11 @@ def create_app(config_name='default'):
         'max_instances': 1
     }
     
+    # Session configuration
+    app.config['SESSION_COOKIE_NAME'] = 'canvas_todoist_session'
+    app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=7)
+    app.config['SESSION_REFRESH_EACH_REQUEST'] = True
+    
     # Initialize extensions
     db.init_app(app)
     login_manager.init_app(app)
@@ -123,6 +128,14 @@ def create_app(config_name='default'):
     login_manager.login_message = 'Please log in to access this page.'
     login_manager.login_message_category = 'info'
     
+    # Debug logging for session and auth
+    if app.debug:
+        @app.before_request
+        def log_request_info():
+            app.logger.debug('Headers: %s', request.headers)
+            app.logger.debug('Session: %s', dict(session))
+            app.logger.debug('User: %s', current_user)
+
     # Add error handlers
     @app.errorhandler(404)
     def not_found_error(error):
