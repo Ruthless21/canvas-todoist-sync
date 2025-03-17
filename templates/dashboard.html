@@ -51,7 +51,7 @@
                             {% else %}
                                 <span class="badge bg-secondary"><i class="bi bi-x-circle me-1"></i>Disabled</span>
                                 {% if not current_user.is_premium %}
-                                    <a href="{{ url_for('pricing') }}" class="badge bg-warning text-decoration-none text-dark">
+                                    <a href="{{ url_for('pricing.index') }}" class="badge bg-warning text-decoration-none text-dark">
                                         <i class="bi bi-star me-1"></i>Get Premium
                                     </a>
                                 {% endif %}
@@ -89,7 +89,7 @@
                     <div class="col-md-3">
                         <div class="mb-3">
                             <p class="text-muted mb-1">Settings</p>
-                            <a href="{{ url_for('settings') }}#sync-settings" class="btn btn-sm btn-outline-primary">
+                            <a href="{{ url_for('settings.index') }}#sync-settings" class="btn btn-sm btn-outline-primary">
                                 <i class="bi bi-gear me-1"></i>Configure
                             </a>
                         </div>
@@ -99,7 +99,7 @@
                 <div class="alert alert-light border mt-2 mb-0">
                     <i class="bi bi-info-circle me-2"></i>
                     <strong>Automatic Sync</strong> runs in the background on a schedule to keep your tasks up-to-date automatically. 
-                    <a href="{{ url_for('pricing') }}">Start your {{ trial_days }}-day free trial</a> for just ${{ monthly_price }}/month to enable this feature.
+                    <a href="{{ url_for('pricing.index') }}">Start your {{ trial_days }}-day free trial</a> for just ${{ monthly_price }}/month to enable this feature.
                 </div>
                 {% endif %}
             </div>
@@ -216,7 +216,7 @@
                     </table>
                 </div>
                 <div class="text-end mt-2">
-                    <a href="{{ url_for('sync_history') }}" class="btn btn-outline-primary btn-sm">
+                    <a href="{{ url_for('history.index') }}" class="btn btn-outline-primary btn-sm">
                         <i class="bi bi-clock-history me-1"></i> View Full History
                     </a>
                 </div>

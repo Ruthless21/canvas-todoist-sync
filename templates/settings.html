@@ -45,7 +45,7 @@
                             </button>
                         </div>
                         
-                        <form method="POST" action="{{ url_for('api_credentials') }}" id="api-credentials-form">
+                        <form method="POST" action="{{ url_for('settings.api_credentials') }}" id="api-credentials-form">
                             {{ api_form.hidden_tag() }}
                             
                             <div class="mb-4">
@@ -111,7 +111,7 @@
                     <div class="card-body">
                         <p>Configure how your Canvas assignments are synchronized with Todoist.</p>
                         
-                        <form method="POST" action="{{ url_for('update_sync_settings') }}">
+                        <form method="POST" action="{{ url_for('settings.update_sync_settings') }}">
                             {{ sync_form.hidden_tag() }}
                             
                             <div class="card mb-3 border-primary">
@@ -162,7 +162,7 @@
                                 {% if current_user.is_premium %}
                                     Automatic sync is active with your Premium subscription. You can configure both the automatic sync toggle and frequency settings above.
                                 {% else %}
-                                    Automatic sync requires a Premium subscription. <a href="{{ url_for('pricing') }}" class="alert-link">Start your {{ trial_days }}-day free trial</a> for just ${{ monthly_price }}/month. 
+                                    Automatic sync requires a Premium subscription. <a href="{{ url_for('pricing.index') }}" class="alert-link">Start your {{ trial_days }}-day free trial</a> for just ${{ monthly_price }}/month. 
                                     <br><small>Without Premium, you can still manually sync assignments from the Dashboard.</small>
                                 {% endif %}
                             </div>
@@ -181,7 +181,7 @@
                     </div>
                     <div class="card-body">
                         <p>View your synchronization history.</p>
-                        <a href="{{ url_for('sync_history') }}" class="btn btn-outline-primary">
+                        <a href="{{ url_for('history.index') }}" class="btn btn-outline-primary">
                             <i class="bi bi-clock-history me-2"></i>View Sync History
                         </a>
                     </div>
@@ -194,7 +194,7 @@
                         <h5 class="mb-0"><i class="bi bi-person me-2"></i>Account Settings</h5>
                     </div>
                     <div class="card-body">
-                        <form method="POST" action="{{ url_for('update_account') }}">
+                        <form method="POST" action="{{ url_for('settings.update_account') }}">
                             {{ account_form.hidden_tag() }}
                             
                             <div class="mb-3">
@@ -223,7 +223,7 @@
                         <h5 class="mb-0"><i class="bi bi-shield-lock me-2"></i>Change Password</h5>
                     </div>
                     <div class="card-body">
-                        <form method="POST" action="{{ url_for('change_password') }}">
+                        <form method="POST" action="{{ url_for('settings.change_password') }}">
                             {{ password_form.hidden_tag() }}
                             
                             <div class="mb-3">
@@ -293,7 +293,7 @@
                                 <i class="bi bi-star-fill me-2"></i>Manage Subscription
                             </a>
                         {% else %}
-                            <a href="{{ url_for('pricing') }}" class="btn btn-primary">
+                            <a href="{{ url_for('pricing.index') }}" class="btn btn-primary">
                                 <i class="bi bi-star me-2"></i>Start {{ trial_days }}-Day Free Trial
                             </a>
                         {% endif %}
