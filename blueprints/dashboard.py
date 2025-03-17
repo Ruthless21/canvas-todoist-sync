@@ -15,29 +15,49 @@ from utils.api import get_api_clients
 @login_required
 def index():
     """Display the main dashboard."""
-    canvas_client, todoist_client = get_api_clients(current_user)
+    from flask import current_app
     
-    if not canvas_client or not todoist_client:
-        return redirect(url_for('dashboard.api_credentials'))
+    current_app.logger.debug('Dashboard index route accessed by user: %s', current_user.username if current_user.is_authenticated else 'Anonymous')
+    current_app.logger.debug('Current user authentication status: %s', current_user.is_authenticated)
     
     try:
-        courses = canvas_client.get_courses()
-        projects = todoist_client.get_projects()
-        assignments = canvas_client.get_assignments()
-        todo_items = canvas_client.get_todo_items()
+        # Get API clients
+        current_app.logger.debug('Getting API clients for user: %s', current_user.username)
+        canvas_client, todoist_client = get_api_clients(current_user)
         
-        return render_template('dashboard.html',
-                             courses=courses,
-                             projects=projects,
-                             assignments=assignments,
-                             todo_items=todo_items)
+        if not canvas_client or not todoist_client:
+            current_app.logger.debug('API clients not configured, redirecting to settings')
+            return redirect(url_for('settings.index'))
+        
+        # Gather data for dashboard display
+        try:
+            # Canvas data
+            current_app.logger.debug('Fetching Canvas courses')
+            courses = canvas_client.get_courses()
+            
+            # Todoist data
+            current_app.logger.debug('Fetching Todoist projects')
+            projects = todoist_client.get_projects()
+            tasks = todoist_client.get_tasks()
+            
+            current_app.logger.debug('Successfully loaded dashboard data')
+            return render_template('dashboard.html', 
+                                  title='Dashboard',
+                                  courses=courses,
+                                  projects=projects,
+                                  tasks=tasks)
+        except Exception as e:
+            current_app.logger.error('Error fetching dashboard data: %s', str(e))
+            flash('Error loading dashboard data. Please check your API credentials.', 'danger')
+            return render_template('dashboard.html', 
+                                  title='Dashboard',
+                                  error=str(e))
     except Exception as e:
-        flash(f'Error loading dashboard data: {str(e)}', 'danger')
-        return render_template('dashboard.html',
-                             courses=[],
-                             projects=[],
-                             assignments=[],
-                             todo_items=[])
+        current_app.logger.error('Unexpected error in dashboard: %s', str(e))
+        flash('An unexpected error occurred.', 'danger')
+        return render_template('dashboard.html', 
+                              title='Dashboard',
+                              error=str(e))
 
 @dashboard_bp.route('/api_credentials', methods=['GET', 'POST'])
 @login_required

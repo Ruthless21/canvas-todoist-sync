@@ -172,6 +172,7 @@ def create_app(config_name='default'):
     if app.debug:
         @app.before_request
         def log_request_info():
+            app.logger.debug('Request method: %s, path: %s', request.method, request.path)
             app.logger.debug('Headers: %s', request.headers)
             app.logger.debug('Session: %s', dict(session))
             app.logger.debug('User: %s', current_user)
@@ -194,9 +195,18 @@ def create_app(config_name='default'):
         # After request handler to ensure session is saved
         @app.after_request
         def after_request_func(response):
+            # Always save the session
             session.modified = True
             
-            # Delete old session cookie if needed
+            # Add debug logging for response
+            app.logger.debug('Response status: %s', response.status_code)
+            app.logger.debug('Response headers: %s', response.headers)
+            
+            # For redirect responses, be extra careful
+            if response.status_code in (301, 302, 303, 307, 308):
+                app.logger.debug('Processing redirect response to: %s', response.headers.get('Location'))
+            
+            # Delete old session cookie if needed, but don't mess with redirects
             if hasattr(g, 'delete_old_cookie') and g.delete_old_cookie:
                 response.delete_cookie('canvas_todoist_session')
                 app.logger.debug('Deleted old canvas_todoist_session cookie in after_request')

@@ -78,28 +78,49 @@ def login():
         current_app.logger.debug('Updated session data: %s', dict(session))
         current_app.logger.debug('Current user after login: %s', current_user)
         
-        # Flash success message
-        flash('Login successful!', 'success')
-        
-        next_page = request.args.get('next')
-        current_app.logger.debug('Next page after login: %s', next_page)
-        
-        # Ensure we have a valid redirect destination
-        if not next_page or url_parse(next_page).netloc != '':
-            next_page = url_for('dashboard.index')
-            current_app.logger.debug('No next page specified, redirecting to dashboard: %s', next_page)
-        
-        # Log successful login and session info
-        current_app.logger.info('User %s logged in successfully', user.username)
-        current_app.logger.debug('Session after login: %s', dict(session))
-        current_app.logger.debug('Remember cookie set: %s', form.remember_me.data)
-        
-        # Force a session save before redirecting
+        # Force session saving
         session.modified = True
         
-        # Return a proper redirect response
-        response = redirect(next_page)
-        current_app.logger.debug('Redirecting to: %s', next_page)
+        # Choose different redirect methods based on what might work
+        
+        # Try a reliable redirect method - HTML meta refresh
+        next_page = request.args.get('next')
+        current_app.logger.debug('Next page parameter: %s', next_page)
+        
+        # Validate next_page to avoid open redirect vulnerabilities
+        if not next_page or url_parse(next_page).netloc != '':
+            next_page = url_for('dashboard.index')
+        
+        # Add a flash message for the next request
+        flash('Login successful!', 'success')
+        
+        current_app.logger.debug('Using HTML meta redirect to: %s', next_page)
+        current_app.logger.info('User %s logged in successfully - using HTML meta redirect to %s', user.username, next_page)
+        
+        # Create HTML with meta refresh for reliable browser redirect
+        html_content = f"""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Redirecting...</title>
+            <meta http-equiv="refresh" content="0;url={next_page}">
+            <script>window.location.href = "{next_page}";</script>
+        </head>
+        <body>
+            <p>Login successful! Redirecting to <a href="{next_page}">dashboard</a>...</p>
+        </body>
+        </html>
+        """
+        
+        response = current_app.response_class(
+            response=html_content,
+            status=200,
+            mimetype='text/html'
+        )
+        
+        # Log the response
+        current_app.logger.debug('Created HTML meta redirect response')
+        
         return response
     
     # Log form errors if any
@@ -156,4 +177,38 @@ def register():
         flash('Congratulations, you are now a registered user!', 'success')
         return redirect(url_for('auth.login'))
     
-    return render_template('register.html', title='Register', form=form) 
+    return render_template('register.html', title='Register', form=form)
+
+@auth_bp.route('/test-redirect')
+def test_redirect():
+    """Test route to diagnose redirect issues."""
+    current_app.logger.debug('Test redirect route accessed')
+    
+    # Use different redirect methods to see which one works
+    
+    # Method 1: Flask redirect function
+    current_app.logger.debug('Using Flask redirect function')
+    return redirect(url_for('dashboard.index'))
+    
+    # Method 2: Direct response
+    # current_app.logger.debug('Using direct response with 302')
+    # return current_app.response_class(
+    #     response=None,
+    #     status=302,
+    #     headers={'Location': url_for('dashboard.index')}
+    # )
+    
+    # Method 3: HTML meta redirect (fallback)
+    # current_app.logger.debug('Using HTML meta redirect')
+    # dashboard_url = url_for('dashboard.index')
+    # return f"""
+    # <!DOCTYPE html>
+    # <html>
+    # <head>
+    #     <meta http-equiv="refresh" content="0;url={dashboard_url}">
+    # </head>
+    # <body>
+    #     <p>Redirecting to <a href="{dashboard_url}">dashboard</a>...</p>
+    # </body>
+    # </html>
+    # """ 
