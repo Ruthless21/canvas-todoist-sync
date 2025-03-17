@@ -62,7 +62,7 @@ def login():
         current_app.logger.debug('Redirecting to index page after successful login')
         return redirect(url_for('main.index'))
         
-    return render_template('auth/login.html', title='Sign In', form=form)
+    return render_template('login.html', title='Sign In', form=form)
 
 @auth_bp.route('/logout')
 @login_required
