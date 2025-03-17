@@ -221,7 +221,7 @@ def create_app(config_name='default'):
                 # Ensure database connections are properly closed
                 db.session.remove()
     
-    # Create database tables before first request
+    # Ensure database connections are properly closed
     with app.app_context():
         db.create_all()
         
@@ -233,14 +233,17 @@ def create_app(config_name='default'):
         except Exception as e:
             print(f"Warning: Could not refresh connection pool: {str(e)}")
     
-    # Determine the current environment
-    def is_pythonanywhere():
-        """Check if running on PythonAnywhere"""
-        return 'pythonanywhere' in socket.gethostname().lower()
-    
-    # Replace with conditional scheduler start
-    if not os.environ.get('FLASK_RUN_FROM_CLI') and os.environ.get('WERKZEUG_RUN_MAIN') != 'true':
-        scheduler.start()
+    # Check if running under uWSGI
+    try:
+        import uwsgi
+        # Running under uWSGI - don't start the scheduler
+        print("Detected uWSGI environment - scheduler will not start automatically")
+        # The scheduler can be run separately using a scheduled task in PythonAnywhere
+    except ImportError:
+        # Not running under uWSGI, safe to start scheduler
+        if not os.environ.get('FLASK_RUN_FROM_CLI') and os.environ.get('WERKZEUG_RUN_MAIN') != 'true':
+            print("Starting scheduler in non-uWSGI environment")
+            scheduler.start()
     
     return app
 
@@ -267,3 +270,4 @@ def internal_error(error):
 if __name__ == '__main__':
     app.jinja_env.cache = {}
     app.run()
+
