@@ -4,7 +4,7 @@ Initializes Flask application and registers blueprints.
 """
 
 import os
-from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, session, g
+from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, session, g, make_response
 from dotenv import load_dotenv
 from flask_login import login_user, logout_user, login_required, current_user
 from urllib.parse import urlparse
@@ -181,6 +181,11 @@ def create_app(config_name='default'):
             app.logger.debug('Session: %s', dict(session))
             app.logger.debug('User: %s', current_user)
             
+            # Clear old session cookie if present - this is causing problems
+            if 'canvas_todoist_session' in request.cookies:
+                app.logger.debug('Detected old canvas_todoist_session cookie, marking for deletion')
+                g.delete_old_cookie = True
+            
             # Force load the user if in session but not recognized by Flask-Login
             if not current_user.is_authenticated and 'user_id' in session:
                 user_id = session.get('user_id')
@@ -188,12 +193,19 @@ def create_app(config_name='default'):
                 user = User.query.get(user_id)
                 if user:
                     login_user(user)
+                    session.modified = True
                     app.logger.debug('Restored user session for: %s', user.username)
                 
         # After request handler to ensure session is saved
         @app.after_request
         def after_request_func(response):
             session.modified = True
+            
+            # Delete old session cookie if needed
+            if hasattr(g, 'delete_old_cookie') and g.delete_old_cookie:
+                response.delete_cookie('canvas_todoist_session')
+                app.logger.debug('Deleted old canvas_todoist_session cookie in after_request')
+            
             return response
 
     # Add error handlers
