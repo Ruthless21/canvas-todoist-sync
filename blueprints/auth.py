@@ -18,117 +18,37 @@ def url_parse(url):
 @auth_bp.route('/login', methods=['GET', 'POST'])
 def login():
     """Handle user login."""
-    current_app.logger.debug('Login route accessed with method: %s', request.method)
-    current_app.logger.debug('Request form data: %s', request.form.to_dict())
-    current_app.logger.debug('Request headers: %s', dict(request.headers))
-    current_app.logger.debug('Cookies: %s', request.cookies)
-    
-    # If user is already logged in, redirect to dashboard
+    # If user is already logged in, redirect to main page
     if current_user.is_authenticated:
-        current_app.logger.debug('User already authenticated, redirecting to dashboard')
-        return redirect(url_for('dashboard.index'))
+        return redirect(url_for('main.index'))
     
     form = LoginForm()
-    current_app.logger.debug('Form CSRF token: %s', form.csrf_token.current_token)
-    current_app.logger.debug('Session CSRF token: %s', session.get('csrf_token'))
-    
-    if request.method == 'POST':
-        current_app.logger.debug('Processing POST request')
-        current_app.logger.debug('Form data before validation: %s', {field.name: field.data for field in form})
-        
-        # Log CSRF token information for debugging
-        current_app.logger.debug('Form CSRF token value: %s', form.csrf_token.data)
-        current_app.logger.debug('Session CSRF token: %s', session.get('csrf_token'))
-        
-        current_app.logger.debug('Form validation status: %s', form.validate())
-        current_app.logger.debug('Form errors: %s', form.errors)
     
     if form.validate_on_submit():
-        current_app.logger.debug('Login form submitted and validated')
+        # Get the user from database
         user = User.query.filter_by(username=form.username.data).first()
         
-        if user is None:
-            current_app.logger.debug('Login failed: User not found - %s', form.username.data)
+        # Check user exists and password is correct
+        if user is None or not user.check_password(form.password.data):
             flash('Invalid username or password', 'danger')
-            return redirect(url_for('auth.login'))
-            
-        if not user.check_password(form.password.data):
-            current_app.logger.debug('Login failed: Invalid password for user - %s', user.username)
-            flash('Invalid username or password', 'danger')
-            return redirect(url_for('auth.login'))
+            return render_template('login.html', title='Sign In', form=form)
         
-        # Clear session first to avoid issues with existing sessions
-        session.clear()
-        
-        # Set session permanent to use PERMANENT_SESSION_LIFETIME
+        # Set session permanent
         session.permanent = True
         
-        # Login user
+        # Log the user in
         login_user(user, remember=form.remember_me.data)
         
         # Update last login time
         user.last_login = datetime.utcnow()
         db.session.commit()
         
-        # For debugging - set these even though Flask-Login handles them
-        session['user_id'] = user.id
-        session['username'] = user.username
-        session['is_authenticated'] = True
-        
-        current_app.logger.debug('Updated session data: %s', dict(session))
-        current_app.logger.debug('Current user after login: %s', current_user)
-        
-        # Force session saving
-        session.modified = True
-        
-        # Choose different redirect methods based on what might work
-        
-        # Try a reliable redirect method - HTML meta refresh
-        next_page = request.args.get('next')
-        current_app.logger.debug('Next page parameter: %s', next_page)
-        
-        # Validate next_page to avoid open redirect vulnerabilities
-        if not next_page or url_parse(next_page).netloc != '':
-            next_page = url_for('dashboard.index')
-        
-        # Add a flash message for the next request
+        # Create success message
         flash('Login successful!', 'success')
         
-        current_app.logger.debug('Using HTML meta redirect to: %s', next_page)
-        current_app.logger.info('User %s logged in successfully - using HTML meta redirect to %s', user.username, next_page)
-        
-        # Create HTML with meta refresh for reliable browser redirect
-        html_content = f"""
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <title>Redirecting...</title>
-            <meta http-equiv="refresh" content="0;url={next_page}">
-            <script>window.location.href = "{next_page}";</script>
-        </head>
-        <body>
-            <p>Login successful! Redirecting to <a href="{next_page}">dashboard</a>...</p>
-        </body>
-        </html>
-        """
-        
-        response = current_app.response_class(
-            response=html_content,
-            status=200,
-            mimetype='text/html'
-        )
-        
-        # Log the response
-        current_app.logger.debug('Created HTML meta redirect response')
-        
-        return response
+        # Simply redirect to main page first
+        return redirect(url_for('main.index'))
     
-    # Log form errors if any
-    if form.errors:
-        current_app.logger.warning('Login form errors: %s', form.errors)
-    
-    # Log the CSRF token status
-    current_app.logger.debug('CSRF Token present: %s', 'csrf_token' in session)
     return render_template('login.html', title='Sign In', form=form)
 
 @auth_bp.route('/logout')
