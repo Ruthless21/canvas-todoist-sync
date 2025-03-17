@@ -6,39 +6,23 @@ Initializes Flask application and registers blueprints.
 import os
 from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, session, g
 from dotenv import load_dotenv
-from flask_login import LoginManager, login_user, logout_user, login_required, current_user
+from flask_login import login_user, logout_user, login_required, current_user
 from urllib.parse import urlparse
-from models import User, SyncHistory, SyncSettings, Subscription
 from extensions import db, login_manager, cache, scheduler, migrate, csrf
+from models import User
+# Import other model classes only when needed to avoid circular imports
 from forms import LoginForm, RegistrationForm, APICredentialsForm, SyncSettingsForm, AccountUpdateForm, PasswordChangeForm
 from services.canvas_api import CanvasAPI
 from services.todoist_api import TodoistClient
 from services.sync_service import SyncService
 from functools import wraps
 from datetime import datetime, timedelta
-from flask_apscheduler import APScheduler
-from flask_caching import Cache
-from config import Config
 import stripe
-from stripe_routes import stripe_bp
-import stripe_config
 import socket
-from flask_sqlalchemy import SQLAlchemy
-from flask_migrate import Migrate
-from flask_wtf.csrf import CSRFProtect
+from config import Config
 
 # Load environment variables
 load_dotenv()
-
-# Initialize Flask extensions
-db = SQLAlchemy()
-login_manager = LoginManager()
-migrate = Migrate()
-cache = Cache()
-csrf = CSRFProtect()
-
-# Initialize scheduler
-scheduler = APScheduler()
 
 # URL parsing helper
 def url_parse(url):
@@ -60,10 +44,10 @@ def get_api_clients():
         try:
             canvas_api_client = CanvasAPI(
                 api_url=current_user.canvas_api_url,
-                api_token=current_user.get_canvas_api_token()
+                api_token=current_user.get_canvas_token()
             )
             todoist_client = TodoistClient(
-                api_token=current_user.get_todoist_api_key()
+                api_token=current_user.get_todoist_token()
             )
             sync_service_client = SyncService(canvas_api_client, todoist_client)
             return canvas_api_client, todoist_client, sync_service_client
@@ -131,7 +115,6 @@ def create_app(config_name='default'):
     login_manager.login_message_category = 'info'
     
     # Register blueprints
-    app.register_blueprint(stripe_bp)
     from blueprints import auth_bp, dashboard_bp, settings_bp, admin_bp, sync_bp, payments_bp
     app.register_blueprint(auth_bp, url_prefix='/auth')
     app.register_blueprint(dashboard_bp, url_prefix='/dashboard')
@@ -160,11 +143,6 @@ def create_app(config_name='default'):
             trial_days=app.config['TRIAL_DAYS']
         )
     
-    # User loader for Flask-Login
-    @login_manager.user_loader
-    def load_user(id):
-        return User.query.get(int(id))
-    
     # Set up cache functions with proper decorators now that we have app context
     @cache.cached(timeout=app.config['CACHE_DEFAULT_TIMEOUT'], key_prefix=lambda: f"courses_{current_user.id}" if current_user.is_authenticated else "courses_anonymous")
     def get_cached_canvas_courses_with_app(api_client):
@@ -185,6 +163,9 @@ def create_app(config_name='default'):
         with app.app_context():
             try:
                 now = datetime.utcnow()
+                
+                # Import here to avoid circular imports
+                from models import SyncSettings
                 
                 # Get all enabled sync settings
                 settings = SyncSettings.query.filter_by(enabled=True).all()
@@ -213,10 +194,10 @@ def create_app(config_name='default'):
                             # Initialize API clients for the user
                             canvas_api_client = CanvasAPI(
                                 api_url=user.canvas_api_url,
-                                api_token=user.get_canvas_api_token()
+                                api_token=user.get_canvas_token()
                             )
                             todoist_client = TodoistClient(
-                                api_token=user.get_todoist_api_key()
+                                api_token=user.get_todoist_token()
                             )
                             sync_service_client = SyncService(canvas_api_client, todoist_client)
                             
