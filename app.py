@@ -669,6 +669,63 @@ def create_app(config_name='default'):
             # Ensure database connections are properly closed
             db.session.close()
     
+    @app.route('/api/test_canvas', methods=['POST'])
+    @login_required
+    def test_canvas_api():
+        """Test the Canvas API connection with the user's credentials."""
+        try:
+            # Create Canvas API client
+            canvas_api = CanvasAPI(
+                api_url=current_user.canvas_api_url,
+                api_token=current_user.get_canvas_api_token()
+            )
+            
+            # Try to get courses as a test
+            courses = canvas_api.get_courses()
+            
+            # Return success response
+            return jsonify({
+                'success': True,
+                'courses_count': len(courses)
+            })
+        except Exception as e:
+            # Log the error
+            app.logger.error(f"Canvas API test failed for user {current_user.username}: {str(e)}")
+            
+            # Return error response
+            return jsonify({
+                'success': False,
+                'error': str(e)
+            }), 400
+    
+    @app.route('/api/test_todoist', methods=['POST'])
+    @login_required
+    def test_todoist_api():
+        """Test the Todoist API connection with the user's credentials."""
+        try:
+            # Create Todoist API client
+            todoist_api = TodoistClient(
+                api_token=current_user.get_todoist_api_key()
+            )
+            
+            # Try to get projects as a test
+            projects = todoist_api.get_projects()
+            
+            # Return success response
+            return jsonify({
+                'success': True,
+                'projects_count': len(projects)
+            })
+        except Exception as e:
+            # Log the error
+            app.logger.error(f"Todoist API test failed for user {current_user.username}: {str(e)}")
+            
+            # Return error response
+            return jsonify({
+                'success': False,
+                'error': str(e)
+            }), 400
+    
     # Create database tables before first request
     with app.app_context():
         db.create_all()
