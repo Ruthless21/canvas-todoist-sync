@@ -40,7 +40,7 @@ def login():
 def logout():
     """Handle user logout."""
     logout_user()
-    return redirect(url_for('index'))
+    return redirect(url_for('main.index'))
 
 @auth_bp.route('/register', methods=['GET', 'POST'])
 def register():
