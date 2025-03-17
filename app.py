@@ -238,9 +238,8 @@ def create_app(config_name='default'):
         """Check if running on PythonAnywhere"""
         return 'pythonanywhere' in socket.gethostname().lower()
     
-    # Only start the scheduler if not running on PythonAnywhere or explicitly in development mode
-    if config_name == 'development' or not is_pythonanywhere():
-        # Start the scheduler - this is disabled on PythonAnywhere as we use custom_scheduler.py instead
+    # Replace with conditional scheduler start
+    if not os.environ.get('FLASK_RUN_FROM_CLI') and os.environ.get('WERKZEUG_RUN_MAIN') != 'true':
         scheduler.start()
     
     return app
