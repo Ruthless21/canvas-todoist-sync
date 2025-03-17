@@ -14,4 +14,4 @@ sync_bp = Blueprint('sync', __name__)
 payments_bp = Blueprint('payments', __name__)
 
 # Import routes after blueprint creation to avoid circular imports
-from . import auth, dashboard, settings, admin, sync, payments 
+from blueprints import auth, dashboard, settings, admin, sync, payments 

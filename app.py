@@ -8,7 +8,8 @@ from flask import Flask, render_template, request, redirect, url_for, flash, jso
 from dotenv import load_dotenv
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from urllib.parse import urlparse
-from models import db, User, SyncHistory, SyncSettings, Subscription
+from models import User, SyncHistory, SyncSettings, Subscription
+from extensions import db, login_manager, cache, scheduler, migrate, csrf
 from forms import LoginForm, RegistrationForm, APICredentialsForm, SyncSettingsForm, AccountUpdateForm, PasswordChangeForm
 from services.canvas_api import CanvasAPI
 from services.todoist_api import TodoistClient
@@ -114,7 +115,7 @@ def get_cached_todoist_projects(api_client):
 def create_app(config_name='default'):
     """Create and configure the Flask application."""
     app = Flask(__name__)
-    app.config.from_object(Config[config_name])
+    app.config.from_object(Config)
     
     # Initialize extensions
     db.init_app(app)
@@ -140,7 +141,7 @@ def create_app(config_name='default'):
     app.register_blueprint(payments_bp, url_prefix='/payments')
     
     # Initialize Stripe
-    stripe.api_key = stripe_config.STRIPE_SECRET_KEY
+    stripe.api_key = app.config['STRIPE_SECRET_KEY']
     
     # Make debug flag available to templates
     @app.context_processor
@@ -151,12 +152,12 @@ def create_app(config_name='default'):
     @app.context_processor
     def inject_stripe_config():
         return dict(
-            stripe_publishable_key=stripe_config.STRIPE_PUBLISHABLE_KEY,
-            stripe_monthly_price_id=stripe_config.STRIPE_MONTHLY_PRICE_ID,
-            stripe_yearly_price_id=stripe_config.STRIPE_YEARLY_PRICE_ID,
-            monthly_price=stripe_config.MONTHLY_PRICE,
-            yearly_price=stripe_config.YEARLY_PRICE,
-            trial_days=stripe_config.TRIAL_DAYS
+            stripe_publishable_key=app.config['STRIPE_PUBLISHABLE_KEY'],
+            stripe_monthly_price_id=app.config['STRIPE_MONTHLY_PRICE_ID'],
+            stripe_yearly_price_id=app.config['STRIPE_YEARLY_PRICE_ID'],
+            monthly_price=app.config['MONTHLY_PRICE'],
+            yearly_price=app.config['YEARLY_PRICE'],
+            trial_days=app.config['TRIAL_DAYS']
         )
     
     # User loader for Flask-Login

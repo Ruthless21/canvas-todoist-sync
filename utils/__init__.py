@@ -6,7 +6,7 @@ Contains utility functions for the application.
 import os
 import logging
 from cryptography.fernet import Fernet
-from config import SECRET_KEY
+from config import Config
 from models import User
 from services.canvas_api import CanvasAPI
 from services.todoist_api import TodoistAPI
@@ -19,7 +19,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # Initialize encryption
-fernet = Fernet(SECRET_KEY.encode())
+fernet = Fernet(Config.SECRET_KEY.encode())
 
 def encrypt_data(data):
     """Encrypt sensitive data."""
