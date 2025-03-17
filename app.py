@@ -132,6 +132,24 @@ def create_app(config_name='default'):
     app.register_blueprint(sync_bp, url_prefix='/sync')
     app.register_blueprint(payments_bp, url_prefix='/payments')
     
+    # Define root route
+    @app.route('/')
+    def index():
+        """Display the home page."""
+        return render_template('index.html')
+        
+    # Add error handlers
+    @app.errorhandler(404)
+    def not_found_error(error):
+        """Handle 404 errors."""
+        return render_template('errors/404.html'), 404
+
+    @app.errorhandler(500)
+    def internal_error(error):
+        """Handle 500 errors."""
+        db.session.rollback()
+        return render_template('errors/500.html'), 500
+    
     # Initialize Stripe
     stripe.api_key = app.config['STRIPE_SECRET_KEY']
     
@@ -251,24 +269,6 @@ def create_app(config_name='default'):
         if not os.environ.get('FLASK_RUN_FROM_CLI') and os.environ.get('WERKZEUG_RUN_MAIN') != 'true':
             print("Starting scheduler in non-uWSGI environment")
             scheduler.start()
-    
-    # Define root route inside the factory function
-    @app.route('/')
-    def index():
-        """Display the home page."""
-        return render_template('index.html')
-        
-    # Add error handlers inside the factory function
-    @app.errorhandler(404)
-    def not_found_error(error):
-        """Handle 404 errors."""
-        return render_template('errors/404.html'), 404
-
-    @app.errorhandler(500)
-    def internal_error(error):
-        """Handle 500 errors."""
-        db.session.rollback()
-        return render_template('errors/500.html'), 500
     
     return app
 
