@@ -28,7 +28,7 @@ os.environ['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'default-secret-key-for-
 # mysql://<username>:<password>@<username>.mysql.pythonanywhere-services.com/<username>$<dbname>
 
 db_username = 'TatumParr'  # Your PythonAnywhere username
-db_password = 'FEo3f5gBOpIZF'  # ← REPLACE THIS with your ACTUAL MySQL password from the Databases tab
+db_password = 'v7rvtPEfz9iT'  # ← REPLACE THIS with your ACTUAL MySQL password from the Databases tab
 db_name = 'TatumParr$canvas_todoist'  # Format must be username$dbname
 db_host = 'TatumParr.mysql.pythonanywhere-services.com'  # Standard host format
 

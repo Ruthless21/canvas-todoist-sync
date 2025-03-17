@@ -15,7 +15,7 @@ load_dotenv()
 
 # Constants - update these with your actual credentials
 USERNAME = 'TatumParr'
-PASSWORD = 'FEo3f5gBOpIZF'  # Your MySQL password
+PASSWORD = 'v7rvtPEfz9iT'  # Your MySQL password
 DB_NAME = 'TatumParr$canvas_todoist'
 HOST = 'TatumParr.mysql.pythonanywhere-services.com'
 
