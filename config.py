@@ -43,7 +43,6 @@ class Config:
     
     # Domain configuration
     DOMAIN = os.environ.get('DOMAIN') or 'localhost:5000'
-    SERVER_NAME = os.environ.get('SERVER_NAME')
     
     # Subscription pricing
     MONTHLY_PRICE = 9.99
