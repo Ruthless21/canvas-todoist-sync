@@ -123,12 +123,6 @@ def create_app(config_name='default'):
     login_manager.login_message = 'Please log in to access this page.'
     login_manager.login_message_category = 'info'
     
-    # Define root route before registering blueprints
-    @app.route('/')
-    def index():
-        """Display the home page."""
-        return render_template('index.html')
-        
     # Add error handlers
     @app.errorhandler(404)
     def not_found_error(error):
@@ -142,7 +136,8 @@ def create_app(config_name='default'):
         return render_template('errors/500.html'), 500
     
     # Register blueprints
-    from blueprints import auth_bp, dashboard_bp, settings_bp, admin_bp, sync_bp, payments_bp
+    from blueprints import main_bp, auth_bp, dashboard_bp, settings_bp, admin_bp, sync_bp, payments_bp
+    app.register_blueprint(main_bp)  # No url_prefix for main blueprint
     app.register_blueprint(auth_bp, url_prefix='/auth')
     app.register_blueprint(dashboard_bp, url_prefix='/dashboard')
     app.register_blueprint(settings_bp, url_prefix='/settings')
@@ -152,23 +147,6 @@ def create_app(config_name='default'):
     
     # Initialize Stripe
     stripe.api_key = app.config['STRIPE_SECRET_KEY']
-    
-    # Make debug flag available to templates
-    @app.context_processor
-    def inject_debug():
-        return dict(debug=app.debug)
-    
-    # Add Stripe configuration to templates
-    @app.context_processor
-    def inject_stripe_config():
-        return dict(
-            stripe_publishable_key=app.config['STRIPE_PUBLISHABLE_KEY'],
-            stripe_monthly_price_id=app.config['STRIPE_MONTHLY_PRICE_ID'],
-            stripe_yearly_price_id=app.config['STRIPE_YEARLY_PRICE_ID'],
-            monthly_price=app.config['MONTHLY_PRICE'],
-            yearly_price=app.config['YEARLY_PRICE'],
-            trial_days=app.config['TRIAL_DAYS']
-        )
     
     # Set up cache functions with proper decorators now that we have app context
     @cache.cached(timeout=app.config['CACHE_DEFAULT_TIMEOUT'], key_prefix=lambda: f"courses_{current_user.id}" if current_user.is_authenticated else "courses_anonymous")
@@ -274,23 +252,6 @@ def create_app(config_name='default'):
 
 # Create application instance
 app = create_app('pythonanywhere' if 'pythonanywhere' in socket.gethostname().lower() else 'development')
-
-# These routes are now defined inside the create_app function
-# @app.route('/')
-# def index():
-#     """Display the home page."""
-#     return render_template('index.html')
-
-# @app.errorhandler(404)
-# def not_found_error(error):
-#     """Handle 404 errors."""
-#     return render_template('errors/404.html'), 404
-
-# @app.errorhandler(500)
-# def internal_error(error):
-#     """Handle 500 errors."""
-#     db.session.rollback()
-#     return render_template('errors/500.html'), 500
 
 # Only used when running directly with Python
 if __name__ == '__main__':
