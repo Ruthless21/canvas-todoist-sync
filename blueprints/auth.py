@@ -19,18 +19,22 @@ def url_parse(url):
 def login():
     """Handle user login."""
     current_app.logger.debug('Login route accessed with method: %s', request.method)
-    current_app.logger.debug('Form data: %s', request.form)
+    current_app.logger.debug('Request form data: %s', request.form.to_dict())
+    current_app.logger.debug('Request headers: %s', dict(request.headers))
     
     if current_user.is_authenticated:
         current_app.logger.debug('User already authenticated, redirecting to dashboard')
         return redirect(url_for('dashboard.index'))
     
     form = LoginForm()
-    current_app.logger.debug('Form validation status: %s', form.validate_on_submit())
-    if not form.validate_on_submit():
-        current_app.logger.debug('Form validation errors: %s', form.errors)
-        current_app.logger.debug('CSRF token from form: %s', form.csrf_token.current_token)
-        current_app.logger.debug('CSRF token from session: %s', session.get('csrf_token'))
+    current_app.logger.debug('Form CSRF token: %s', form.csrf_token.current_token)
+    current_app.logger.debug('Session CSRF token: %s', session.get('csrf_token'))
+    
+    if request.method == 'POST':
+        current_app.logger.debug('Processing POST request')
+        current_app.logger.debug('Form data before validation: %s', {field.name: field.data for field in form})
+        current_app.logger.debug('Form validation status: %s', form.validate())
+        current_app.logger.debug('Form errors: %s', form.errors)
     
     if form.validate_on_submit():
         current_app.logger.debug('Login form submitted and validated')
