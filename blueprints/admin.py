@@ -6,8 +6,9 @@ Handles administrative functionality and system management.
 from flask import render_template, redirect, url_for, flash, request, jsonify
 from flask_login import login_required, current_user
 from functools import wraps
-from . import admin_bp
-from ..models import User, db
+from blueprints import admin_bp
+from models import User, db, SyncSettings, SyncHistory
+from datetime import datetime, timedelta
 
 def admin_required(f):
     """Decorator to require admin privileges."""

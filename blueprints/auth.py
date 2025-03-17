@@ -6,9 +6,9 @@ Handles user login, registration, and logout functionality.
 from flask import render_template, redirect, url_for, flash, request
 from flask_login import login_user, logout_user, login_required, current_user
 from urllib.parse import urlparse
-from . import auth_bp
-from ..forms import LoginForm, RegistrationForm
-from ..models import User, db
+from blueprints import auth_bp
+from forms import LoginForm, RegistrationForm
+from models import User, db
 
 def url_parse(url):
     """Parse URL for security checks."""

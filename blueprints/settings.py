@@ -5,9 +5,9 @@ Handles user settings and preferences management.
 
 from flask import render_template, redirect, url_for, flash, request
 from flask_login import login_required, current_user
-from . import settings_bp
-from ..models import User, db
-from ..forms import UserSettingsForm
+from blueprints import settings_bp
+from models import User, db
+from forms import UserSettingsForm
 
 @settings_bp.route('/settings', methods=['GET', 'POST'])
 @login_required

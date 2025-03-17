@@ -5,11 +5,11 @@ Handles main dashboard display and API credential management.
 
 from flask import render_template, redirect, url_for, flash, request, jsonify
 from flask_login import login_required, current_user
-from . import dashboard_bp
-from ..models import User, db
-from ..services.canvas_api import CanvasAPI
-from ..services.todoist_api import TodoistAPI
-from ..utils import get_api_clients
+from blueprints import dashboard_bp
+from models import User, db
+from services.canvas_api import CanvasAPI
+from services.todoist_api import TodoistAPI
+from utils.api import get_api_clients
 
 @dashboard_bp.route('/')
 @login_required

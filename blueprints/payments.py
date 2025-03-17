@@ -3,20 +3,22 @@ Payments blueprint.
 Handles subscription and payment processing.
 """
 
-from flask import render_template, redirect, url_for, flash, request, jsonify
+from flask import render_template, redirect, url_for, flash, request, jsonify, current_app
 from flask_login import login_required, current_user
-from . import payments_bp
-from ..models import User, db
-from ..config import STRIPE_PUBLISHABLE_KEY, STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET
+from blueprints import payments_bp
+from models import User, db, Subscription
 import stripe
+from datetime import datetime, timedelta
+from config import Config
 
-stripe.api_key = STRIPE_SECRET_KEY
+# Initialize Stripe with the API key from config
+stripe.api_key = Config.STRIPE_SECRET_KEY
 
 @payments_bp.route('/pricing')
 def pricing():
     """Display subscription pricing plans."""
     return render_template('pricing.html',
-                         stripe_public_key=STRIPE_PUBLISHABLE_KEY)
+                         stripe_public_key=Config.STRIPE_PUBLISHABLE_KEY)
 
 @payments_bp.route('/create-checkout-session', methods=['POST'])
 @login_required
@@ -66,7 +68,7 @@ def webhook():
     
     try:
         event = stripe.Webhook.construct_event(
-            payload, sig_header, STRIPE_WEBHOOK_SECRET
+            payload, sig_header, Config.STRIPE_WEBHOOK_SECRET
         )
     except ValueError as e:
         return jsonify({'error': 'Invalid payload'}), 400
