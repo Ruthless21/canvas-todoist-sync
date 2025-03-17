@@ -19,12 +19,19 @@ def url_parse(url):
 def login():
     """Handle user login."""
     current_app.logger.debug('Login route accessed with method: %s', request.method)
+    current_app.logger.debug('Form data: %s', request.form)
     
     if current_user.is_authenticated:
         current_app.logger.debug('User already authenticated, redirecting to dashboard')
         return redirect(url_for('dashboard.index'))
     
     form = LoginForm()
+    current_app.logger.debug('Form validation status: %s', form.validate_on_submit())
+    if not form.validate_on_submit():
+        current_app.logger.debug('Form validation errors: %s', form.errors)
+        current_app.logger.debug('CSRF token from form: %s', form.csrf_token.current_token)
+        current_app.logger.debug('CSRF token from session: %s', session.get('csrf_token'))
+    
     if form.validate_on_submit():
         current_app.logger.debug('Login form submitted and validated')
         user = User.query.filter_by(username=form.username.data).first()
