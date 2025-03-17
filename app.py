@@ -99,7 +99,9 @@ def get_cached_todoist_projects(api_client):
 def create_app(config_name='default'):
     """Create and configure the Flask application."""
     app = Flask(__name__)
-    app.config.from_object(Config)
+    
+    # Load the appropriate configuration
+    app.config.from_object(config[config_name])
     
     # Initialize extensions
     db.init_app(app)
