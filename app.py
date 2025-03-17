@@ -19,7 +19,7 @@ from functools import wraps
 from datetime import datetime, timedelta
 import stripe
 import socket
-from config import Config
+from config import Config, config
 
 # Load environment variables
 load_dotenv()
