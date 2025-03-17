@@ -19,9 +19,21 @@ load_dotenv()
 # Create the application instance
 from app import create_app
 
-# Determine the configuration based on the environment
-is_pythonanywhere = 'pythonanywhere' in socket.gethostname().lower()
-app = create_app('pythonanywhere' if is_pythonanywhere else 'development')
+# In production WSGI file, always use pythonanywhere config
+production_mode = os.path.abspath(__file__) != os.path.join(os.path.dirname(os.path.abspath(__file__)), 'wsgi.py')
+is_pythonanywhere = 'pythonanywhere' in socket.gethostname().lower() or production_mode
+
+print(f"Socket hostname: {socket.gethostname()}")
+print(f"Production mode detected: {production_mode}")
+print(f"Using pythonanywhere config: {is_pythonanywhere}")
+
+# Force pythonanywhere mode for www_syncmyassignments_com_wsgi.py
+if 'www_syncmyassignments_com_wsgi.py' in os.path.abspath(__file__):
+    print(f"PythonAnywhere WSGI file detected, forcing pythonanywhere config")
+    app = create_app('pythonanywhere')
+else:
+    app = create_app('pythonanywhere' if is_pythonanywhere else 'development')
+
 print(f"Application created with configuration: {'pythonanywhere' if is_pythonanywhere else 'development'}")
 
 if __name__ == '__main__':
