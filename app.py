@@ -252,26 +252,45 @@ def create_app(config_name='default'):
             print("Starting scheduler in non-uWSGI environment")
             scheduler.start()
     
+    # Define root route inside the factory function
+    @app.route('/')
+    def index():
+        """Display the home page."""
+        return render_template('index.html')
+        
+    # Add error handlers inside the factory function
+    @app.errorhandler(404)
+    def not_found_error(error):
+        """Handle 404 errors."""
+        return render_template('errors/404.html'), 404
+
+    @app.errorhandler(500)
+    def internal_error(error):
+        """Handle 500 errors."""
+        db.session.rollback()
+        return render_template('errors/500.html'), 500
+    
     return app
 
 # Create application instance
 app = create_app('pythonanywhere' if 'pythonanywhere' in socket.gethostname().lower() else 'development')
 
-@app.route('/')
-def index():
-    """Display the home page."""
-    return render_template('index.html')
+# These routes are now defined inside the create_app function
+# @app.route('/')
+# def index():
+#     """Display the home page."""
+#     return render_template('index.html')
 
-@app.errorhandler(404)
-def not_found_error(error):
-    """Handle 404 errors."""
-    return render_template('errors/404.html'), 404
+# @app.errorhandler(404)
+# def not_found_error(error):
+#     """Handle 404 errors."""
+#     return render_template('errors/404.html'), 404
 
-@app.errorhandler(500)
-def internal_error(error):
-    """Handle 500 errors."""
-    db.session.rollback()
-    return render_template('errors/500.html'), 500
+# @app.errorhandler(500)
+# def internal_error(error):
+#     """Handle 500 errors."""
+#     db.session.rollback()
+#     return render_template('errors/500.html'), 500
 
 # Only used when running directly with Python
 if __name__ == '__main__':
