@@ -244,7 +244,7 @@ def create_app(config_name='default'):
     return app
 
 # Create application instance
-app = create_app('development')
+app = create_app('pythonanywhere' if 'pythonanywhere' in socket.gethostname().lower() else 'development')
 
 @app.route('/')
 def index():
