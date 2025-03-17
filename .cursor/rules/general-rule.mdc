@@ -1,0 +1,34 @@
+---
+description: Overall project instructions to be followed at all times, no matter what
+globs: 
+alwaysApply: true
+---
+
+# Overview
+
+We are develop a full-stack webapp that has user API tokens as inputs from Canvas and Todoist, and allows Canvas assignments to be synced into todoist as tasks. It's a freemium business model, with a monthly subscription for premium features.
+
+# Tech stack
+
+Frontend: HTML/CSS/JavaScript, Bootstrap 5, Jinja2, jQuery, Chart.js, AJAX, Font Awesome/Bootstrap Icons.
+Backend: Python 3.10+, Flask 2.3+, Flask Extensions: Flask-login -- User authentication, Flask-SQLAlchemy -- ORM for database operations, Flask-WTF -- Form handling and validation, Flask-APScheduler -- Task scheduling, Flask-Caching -- Response and data caching
+MySQL: Relational database
+PythonAnywhere: Hosting/deployment platform
+
+APIs and Integrations: Canvas LMS API -- For retreiveing course and assignment data, Todoist API -- For managing tasks and projects, Stripe API -- Payment processing and subscription managment
+
+Security: Cryptography -- For secure storage of API tokens, CSRF Protection: Via Flask-WTF, Passowrd Hasing: For secure user authentication, Environment Variables: For sensitive configuration
+
+Development and Deployment: Git/GitHub -- Version control, pip/requirements.txt -- Dependency managment, dotenv: Environment variable managment, WSGI -- Web server interface for production
+
+# Rules
+Code Style and Formatting: PEP 8 Compliance -- Follow Python's PEP 8 style guide for all python code, Line Length -- Maximm line length of 100 characters, Indentation -- 4 spaces for python, 2 spaces for HTML/JS/CSS, File Naming -- Use snake_case for py files and modules, Class Naming -- Use CamcelCase for class names, Function/Var naming -- Use snake_case for functions and variables
+Project Structure: Modular Organization -- Group code by feature or functionality, Avoid Circular Imports -- Maintain clear dependency hierarchy, Package Responsibility -- Each package should have a single responsibility, Blueprint Usage -- Use Flask blueprints for route organization
+Documentation: Docstrings -- All modules, classes, and functions should have docstrings, Comments -- Add comments for complex logic or non-obvious solutions, README Updates -- Keep README documentation in sync with code changes, Function Parameters -- Document parameters, return values, and exceptions
+Security Practices: No Credentials in Code -- All credentials must be in environment variables, Input Validation -- Validate and sanitize all user inputs, CSRF Protection -- implement on all forms, API Token Storage -- Encrypt all API tokens and sensitive data
+Database Operations: Use ORM -- Use SQLAlchemy for all database operations, Migrations -- Document database schema changes, Connection Managment -- Properly close database connections, Transaction Boundaries -- Clear begin/commit/rollback patterns
+Error Handling: Comprehensive Error Handling -- Handle all expected exceptions, User-Friendly Messages -- Provide clear error messages to users, Logging -- Log detailed error information for debugging, Fail Gracefully -- Application should never crash due to expected errors
+Testing: Test Coverage -- Aim for comprehensive test coverage, Test Organization -- Organize tests to mirror application structure, Test Isolation -- Tests should not depend on each other, Mock External Services -- Use mocks for testing API integrations
+Version Control: Descriptive Commits -- Write clear commmit messages, Consistent Formatting -- Follow the project's commit message format, Feature Branches -- Develop new features in seperate branches, Pull Request Review -- All code changes require review before merging
+Performance Considerations: Caching Strategy -- Use appropriate caching for expensive operations, Database Query Optimization: Avoid N+1 Query Problems, Pagination -- Implement pagination for large data sets, Resource Cleanup -- Properly close files, conectiong, and resources.
+Deployment: Environment Configuration -- Seperate configurations for development/production, Dependecy Managment -- Keep requirements.txt updated, Rollback Plan -- Have a strategy for rolling back failed deployments, Security Headers: Configure appropriate HTTPS Security headers
