@@ -134,6 +134,12 @@ def create_app(config_name='default'):
     app.config['SESSION_COOKIE_NAME'] = 'canvas_todoist_session'
     app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=7)
     app.config['SESSION_REFRESH_EACH_REQUEST'] = True
+    app.config['SESSION_COOKIE_SECURE'] = True  # Only send cookie over HTTPS
+    app.config['SESSION_COOKIE_HTTPONLY'] = True  # Prevent JavaScript access
+    app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'  # CSRF protection
+    
+    # Configure Flask-Login session protection
+    login_manager.session_protection = 'strong'
     
     # Debug mode configuration
     app.debug = True  # Enable debug mode
