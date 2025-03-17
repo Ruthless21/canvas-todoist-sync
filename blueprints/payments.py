@@ -99,16 +99,40 @@ def webhook():
 @payments_bp.route('/manage-subscription')
 @login_required
 def manage_subscription():
-    """Display subscription management page."""
-    if not current_user.stripe_customer_id:
-        return redirect(url_for('payments.pricing'))
-    
+    """Redirect user to Stripe Customer Portal to manage their subscription."""
     try:
-        portal_session = stripe.billing_portal.Session.create(
+        if not current_user.stripe_customer_id:
+            flash('You do not have an active subscription to manage.', 'warning')
+            return redirect(url_for('payments.pricing'))
+        
+        # Create a Stripe portal session
+        session = stripe.billing_portal.Session.create(
             customer=current_user.stripe_customer_id,
-            return_url=url_for('dashboard.index', _external=True),
+            return_url=url_for('payments.subscription', _external=True)
         )
-        return redirect(portal_session.url)
+        
+        # Redirect to the customer portal
+        return redirect(session.url)
     except Exception as e:
+        current_app.logger.error(f"Error creating customer portal session: {str(e)}")
         flash('Error accessing subscription management: ' + str(e), 'danger')
-        return redirect(url_for('dashboard.index')) 
+        return redirect(url_for('payments.subscription'))
+
+@payments_bp.route('/subscription')
+@login_required
+def subscription():
+    """Display user subscription details."""
+    # Get subscription data from Stripe if available
+    subscription = None
+    if current_user.stripe_subscription_id:
+        try:
+            subscription = stripe.Subscription.retrieve(current_user.stripe_subscription_id)
+        except Exception as e:
+            current_app.logger.error(f"Error retrieving subscription: {str(e)}")
+    
+    # Define trial days for display
+    trial_days = 14  # Match this with your actual trial length
+    
+    return render_template('subscription.html', 
+                          subscription=subscription,
+                          trial_days=trial_days) 

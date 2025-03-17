@@ -20,6 +20,7 @@ from datetime import datetime, timedelta
 import stripe
 import socket
 from config import Config, config
+from flask_session import Session
 
 # Load environment variables
 load_dotenv()
@@ -32,9 +33,12 @@ def url_parse(url):
 def premium_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
+        if not current_user.is_authenticated:
+            flash('Please log in to access this feature.', 'warning')
+            return redirect(url_for('auth.login', next=request.url))
         if not current_user.is_premium:
             flash('This feature requires a premium subscription.', 'warning')
-            return redirect(url_for('pricing'))
+            return redirect(url_for('payments.pricing'))
         return f(*args, **kwargs)
     return decorated_function
 
@@ -137,6 +141,9 @@ def create_app(config_name='default'):
     app.config['SESSION_COOKIE_SECURE'] = True  # Only send cookie over HTTPS
     app.config['SESSION_COOKIE_HTTPONLY'] = True  # Prevent JavaScript access
     app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'  # CSRF protection
+    app.config['SESSION_TYPE'] = 'filesystem'  # Use filesystem session storage
+    app.config['SESSION_FILE_DIR'] = 'flask_session'  # Directory for session files
+    app.config['SESSION_KEY_PREFIX'] = 'canvas_todoist_'  # Session key prefix for storage
     
     # Configure Flask-Login session protection
     login_manager.session_protection = 'strong'
@@ -151,6 +158,9 @@ def create_app(config_name='default'):
     cache.init_app(app)
     csrf.init_app(app)
     scheduler.init_app(app)
+    
+    # Initialize Flask-Session
+    Session(app)
     
     # Configure login manager
     login_manager.login_view = 'auth.login'

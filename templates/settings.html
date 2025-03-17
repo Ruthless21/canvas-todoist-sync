@@ -162,7 +162,7 @@
                                 {% if current_user.is_premium %}
                                     Automatic sync is active with your Premium subscription. You can configure both the automatic sync toggle and frequency settings above.
                                 {% else %}
-                                    Automatic sync requires a Premium subscription. <a href="{{ url_for('pricing.index') }}" class="alert-link">Start your {{ trial_days }}-day free trial</a> for just ${{ monthly_price }}/month. 
+                                    Automatic sync requires a Premium subscription. <a href="{{ url_for('payments.pricing') }}" class="alert-link">Start your {{ trial_days }}-day free trial</a> for just ${{ monthly_price }}/month. 
                                     <br><small>Without Premium, you can still manually sync assignments from the Dashboard.</small>
                                 {% endif %}
                             </div>
@@ -289,11 +289,11 @@
                                 You have <strong>Premium Access</strong>! Thank you for your support.
                             </div>
                             
-                            <a href="{{ url_for('subscription') }}" class="btn btn-primary">
+                            <a href="{{ url_for('payments.subscription') }}" class="btn btn-primary">
                                 <i class="bi bi-star-fill me-2"></i>Manage Subscription
                             </a>
                         {% else %}
-                            <a href="{{ url_for('pricing.index') }}" class="btn btn-primary">
+                            <a href="{{ url_for('payments.pricing') }}" class="btn btn-primary">
                                 <i class="bi bi-star me-2"></i>Start {{ trial_days }}-Day Free Trial
                             </a>
                         {% endif %}

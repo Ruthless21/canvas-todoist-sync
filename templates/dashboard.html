@@ -51,7 +51,7 @@
                             {% else %}
                                 <span class="badge bg-secondary"><i class="bi bi-x-circle me-1"></i>Disabled</span>
                                 {% if not current_user.is_premium %}
-                                    <a href="{{ url_for('pricing.index') }}" class="badge bg-warning text-decoration-none text-dark">
+                                    <a href="{{ url_for('payments.pricing') }}" class="badge bg-warning text-decoration-none text-dark">
                                         <i class="bi bi-star me-1"></i>Get Premium
                                     </a>
                                 {% endif %}
@@ -99,7 +99,7 @@
                 <div class="alert alert-light border mt-2 mb-0">
                     <i class="bi bi-info-circle me-2"></i>
                     <strong>Automatic Sync</strong> runs in the background on a schedule to keep your tasks up-to-date automatically. 
-                    <a href="{{ url_for('pricing.index') }}">Start your {{ trial_days }}-day free trial</a> for just ${{ monthly_price }}/month to enable this feature.
+                    <a href="{{ url_for('payments.pricing') }}">Start your {{ trial_days }}-day free trial</a> for just ${{ monthly_price }}/month to enable this feature.
                 </div>
                 {% endif %}
             </div>
@@ -154,7 +154,8 @@
                   <div class="list-group-item">
                     <div class="d-flex align-items-center">
                       <!-- Display a color dot using project's color property -->
-                      <div class="me-2" style="width: 10px; height: 10px; background-color: #{{ project.color|default('808080') }}; border-radius: 50%;"></div>
+                      <div class="me-2" 
+                           style="width: 10px; height: 10px; background-color: #{{ project.color|default('808080') }}; border-radius: 50%;"></div>
                       <h6 class="mb-0">{{ project.name }}</h6>
                     </div>
                   </div>

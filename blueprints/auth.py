@@ -22,6 +22,7 @@ def login():
     current_app.logger.debug('Request form data: %s', request.form.to_dict())
     current_app.logger.debug('Request headers: %s', dict(request.headers))
     
+    # If user is already logged in, redirect to dashboard
     if current_user.is_authenticated:
         current_app.logger.debug('User already authenticated, redirecting to dashboard')
         return redirect(url_for('dashboard.index'))
@@ -50,13 +51,23 @@ def login():
             flash('Invalid username or password', 'danger')
             return redirect(url_for('auth.login'))
         
+        # Clear session first to avoid issues with existing sessions
+        session.clear()
+        
         # Set session permanent to use PERMANENT_SESSION_LIFETIME
         session.permanent = True
+        
+        # Login user
         login_user(user, remember=form.remember_me.data)
         
         # Update last login time
         user.last_login = datetime.utcnow()
         db.session.commit()
+        
+        # Set important session variables
+        session['user_id'] = user.id
+        session['username'] = user.username
+        session['is_authenticated'] = True
         
         next_page = request.args.get('next')
         current_app.logger.debug('Next page after login: %s', next_page)
@@ -82,7 +93,18 @@ def login():
 @login_required
 def logout():
     """Handle user logout."""
+    current_app.logger.debug('Logout route accessed by user: %s', current_user.username)
+    
+    # Log the user out
     logout_user()
+    
+    # Clear the session
+    session.clear()
+    
+    # Flash message for user feedback
+    flash('You have been logged out successfully.', 'info')
+    
+    current_app.logger.info('User logged out successfully')
     return redirect(url_for('main.index'))
 
 @auth_bp.route('/register', methods=['GET', 'POST'])
