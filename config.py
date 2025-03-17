@@ -98,6 +98,12 @@ class PythonAnywhereConfig(Config):
     SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or 'sqlite:///canvas_todoist.db'
     # Use smaller VARCHAR lengths for MySQL compatibility with specific charsets
     MYSQL_INDEXES_MAX_LENGTH = 191  # For utf8mb4 compatibility
+    
+    # Session and cookie settings
+    SESSION_COOKIE_SECURE = False  # Temporarily disable for debugging
+    REMEMBER_COOKIE_SECURE = False  # Temporarily disable for debugging
+    SESSION_COOKIE_HTTPONLY = True
+    REMEMBER_COOKIE_HTTPONLY = True
 
 # Configuration dictionary for easy access
 config = {
