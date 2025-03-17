@@ -20,6 +20,7 @@ def login():
     """Handle user login."""
     # If user is already logged in, redirect to main page
     if current_user.is_authenticated:
+        current_app.logger.debug('User already authenticated: %s', current_user.username)
         return redirect(url_for('main.index'))
     
     form = LoginForm()
@@ -33,11 +34,19 @@ def login():
             flash('Invalid username or password', 'danger')
             return render_template('login.html', title='Sign In', form=form)
         
-        # Set session permanent
+        # Clear existing session data to avoid conflicts
+        session.clear()
+        
+        # Set session to be permanent (according to PERMANENT_SESSION_LIFETIME)
         session.permanent = True
         
         # Log the user in
-        login_user(user, remember=form.remember_me.data)
+        login_success = login_user(user, remember=form.remember_me.data)
+        current_app.logger.debug('Login_user result: %s', login_success)
+        
+        # Store important session vars directly (belt and suspenders approach)
+        session['user_id'] = user.id
+        session['_user_id'] = user.id  # Flask-Login key
         
         # Update last login time
         user.last_login = datetime.utcnow()
@@ -45,6 +54,12 @@ def login():
         
         # Create success message
         flash('Login successful!', 'success')
+        
+        # Force a session save
+        session.modified = True
+        
+        current_app.logger.debug('User authenticated as: %s', current_user.is_authenticated)
+        current_app.logger.debug('Session contains: %s', dict(session))
         
         # Simply redirect to main page first
         return redirect(url_for('main.index'))

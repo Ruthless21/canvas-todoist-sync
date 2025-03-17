@@ -143,8 +143,11 @@ def create_app(config_name='default'):
     app.config['SESSION_TYPE'] = 'null'  # Use Flask's default session implementation instead of filesystem
     app.config['SECRET_KEY'] = app.config['SECRET_KEY']  # Reuse the same secret key
     
-    # Configure Flask-Login session protection
-    login_manager.session_protection = 'strong'
+    # Configure Flask-Login more extensively
+    login_manager.login_view = 'auth.login'
+    login_manager.login_message = 'Please log in to access this page.'
+    login_manager.login_message_category = 'info'
+    login_manager.session_protection = None  # Disable session protection temporarily to diagnose issues
     
     # Debug mode configuration
     app.debug = True  # Enable debug mode
@@ -157,16 +160,15 @@ def create_app(config_name='default'):
     csrf.init_app(app)
     scheduler.init_app(app)
     
-    # Configure login manager
-    login_manager.login_view = 'auth.login'
-    login_manager.login_message = 'Please log in to access this page.'
-    login_manager.login_message_category = 'info'
-    
-    # User loader for Flask-Login
+    # User loader for Flask-Login - simplified and more reliable
     @login_manager.user_loader
     def load_user(user_id):
-        app.logger.debug('Loading user with ID: %s', user_id)
-        return User.query.get(int(user_id))
+        try:
+            app.logger.debug('Loading user with ID: %s', user_id)
+            return User.query.get(int(user_id))
+        except Exception as e:
+            app.logger.error('Error loading user: %s', str(e))
+            return None
 
     # Debug logging for session and auth
     if app.debug:
