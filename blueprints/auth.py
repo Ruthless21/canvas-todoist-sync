@@ -78,11 +78,16 @@ def login():
         current_app.logger.debug('Updated session data: %s', dict(session))
         current_app.logger.debug('Current user after login: %s', current_user)
         
+        # Flash success message
+        flash('Login successful!', 'success')
+        
         next_page = request.args.get('next')
         current_app.logger.debug('Next page after login: %s', next_page)
         
+        # Ensure we have a valid redirect destination
         if not next_page or url_parse(next_page).netloc != '':
             next_page = url_for('dashboard.index')
+            current_app.logger.debug('No next page specified, redirecting to dashboard: %s', next_page)
         
         # Log successful login and session info
         current_app.logger.info('User %s logged in successfully', user.username)
@@ -92,7 +97,10 @@ def login():
         # Force a session save before redirecting
         session.modified = True
         
-        return redirect(next_page)
+        # Return a proper redirect response
+        response = redirect(next_page)
+        current_app.logger.debug('Redirecting to: %s', next_page)
+        return response
     
     # Log form errors if any
     if form.errors:
