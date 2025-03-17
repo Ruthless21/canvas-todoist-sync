@@ -134,8 +134,8 @@ def create_app(config_name='default'):
         'max_instances': 1
     }
     
-    # Session configuration
-    app.config['SESSION_COOKIE_NAME'] = 'canvas_todoist_session'
+    # Session configuration - use only one consistent session cookie name
+    app.config['SESSION_COOKIE_NAME'] = 'session'  # Use default Flask session cookie name
     app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=7)
     app.config['SESSION_REFRESH_EACH_REQUEST'] = True
     app.config['SESSION_COOKIE_SECURE'] = True  # Only send cookie over HTTPS
@@ -167,6 +167,12 @@ def create_app(config_name='default'):
     login_manager.login_message = 'Please log in to access this page.'
     login_manager.login_message_category = 'info'
     
+    # User loader for Flask-Login
+    @login_manager.user_loader
+    def load_user(user_id):
+        app.logger.debug('Loading user with ID: %s', user_id)
+        return User.query.get(int(user_id))
+
     # Debug logging for session and auth
     if app.debug:
         @app.before_request
@@ -174,6 +180,21 @@ def create_app(config_name='default'):
             app.logger.debug('Headers: %s', request.headers)
             app.logger.debug('Session: %s', dict(session))
             app.logger.debug('User: %s', current_user)
+            
+            # Force load the user if in session but not recognized by Flask-Login
+            if not current_user.is_authenticated and 'user_id' in session:
+                user_id = session.get('user_id')
+                app.logger.debug('Attempting to restore user session for user_id: %s', user_id)
+                user = User.query.get(user_id)
+                if user:
+                    login_user(user)
+                    app.logger.debug('Restored user session for: %s', user.username)
+                
+        # After request handler to ensure session is saved
+        @app.after_request
+        def after_request_func(response):
+            session.modified = True
+            return response
 
     # Add error handlers
     @app.errorhandler(404)
