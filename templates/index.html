@@ -7,14 +7,14 @@
         <p class="lead mb-4">Automatically sync your Canvas LMS assignments to your Todoist task list and stay on top of all your academic responsibilities.</p>
         
         {% if current_user.is_authenticated %}
-            <a href="{{ url_for('dashboard') }}" class="btn btn-primary btn-lg">
+            <a href="{{ url_for('dashboard.index') }}" class="btn btn-primary btn-lg">
                 <i class="bi bi-speedometer2 me-2"></i>Go to Dashboard
             </a>
         {% else %}
-            <a href="{{ url_for('register') }}" class="btn btn-primary btn-lg me-2">
+            <a href="{{ url_for('auth.register') }}" class="btn btn-primary btn-lg me-2">
                 <i class="bi bi-person-plus me-2"></i>Get Started
             </a>
-            <a href="{{ url_for('login') }}" class="btn btn-outline-primary btn-lg">
+            <a href="{{ url_for('auth.login') }}" class="btn btn-outline-primary btn-lg">
                 <i class="bi bi-box-arrow-in-right me-2"></i>Login
             </a>
         {% endif %}
