@@ -325,27 +325,34 @@ def create_app(config_name='default'):
                                   sync_history=[])
     
     # API credentials route
-    @app.route('/api_credentials', methods=['GET', 'POST'])
+    @app.route('/api-credentials', methods=['GET', 'POST'])
     @login_required
     def api_credentials():
-        """Handle API credentials form submission."""
         form = APICredentialsForm()
         
+        # Populate form with existing credentials
+        if request.method == 'GET':
+            form.canvas_api_url.data = current_user.canvas_api_url or ''
+            # Set placeholder values for tokens if they exist
+            if current_user.canvas_api_token:
+                form.canvas_api_token.data = '••••••••••••••••'
+            if current_user.todoist_api_key:
+                form.todoist_api_key.data = '••••••••••••••••'
+        
         if form.validate_on_submit():
-            current_user.canvas_api_url = form.canvas_api_url.data
-            current_user.set_canvas_api_token(form.canvas_api_token.data)
-            current_user.set_todoist_api_key(form.todoist_api_key.data)
+            # Only update fields that were changed
+            if form.canvas_api_url.data != '••••••••••••••••':
+                current_user.canvas_api_url = form.canvas_api_url.data
+            if form.canvas_api_token.data != '••••••••••••••••':
+                current_user.set_canvas_api_token(form.canvas_api_token.data)
+            if form.todoist_api_key.data != '••••••••••••••••':
+                current_user.set_todoist_api_key(form.todoist_api_key.data)
+            
             db.session.commit()
             flash('API credentials updated successfully!', 'success')
             return redirect(url_for('dashboard'))
         
-        # Pre-fill form with user's existing credentials
-        if request.method == 'GET':
-            form.canvas_api_url.data = current_user.canvas_api_url
-            form.canvas_api_token.data = current_user.get_canvas_api_token()
-            form.todoist_api_key.data = current_user.get_todoist_api_key()
-        
-        return render_template('api_credentials.html', title='API Credentials', form=form)
+        return render_template('api_credentials.html', form=form)
     
     # Pricing route
     @app.route('/pricing')
