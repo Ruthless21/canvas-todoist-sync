@@ -18,13 +18,24 @@ def url_parse(url):
 @auth_bp.route('/login', methods=['GET', 'POST'])
 def login():
     """Handle user login."""
+    current_app.logger.debug('Login route accessed with method: %s', request.method)
+    
     if current_user.is_authenticated:
+        current_app.logger.debug('User already authenticated, redirecting to dashboard')
         return redirect(url_for('dashboard.index'))
     
     form = LoginForm()
     if form.validate_on_submit():
+        current_app.logger.debug('Login form submitted and validated')
         user = User.query.filter_by(username=form.username.data).first()
-        if user is None or not user.check_password(form.password.data):
+        
+        if user is None:
+            current_app.logger.debug('Login failed: User not found - %s', form.username.data)
+            flash('Invalid username or password', 'danger')
+            return redirect(url_for('auth.login'))
+            
+        if not user.check_password(form.password.data):
+            current_app.logger.debug('Login failed: Invalid password for user - %s', user.username)
             flash('Invalid username or password', 'danger')
             return redirect(url_for('auth.login'))
         
@@ -37,17 +48,23 @@ def login():
         db.session.commit()
         
         next_page = request.args.get('next')
+        current_app.logger.debug('Next page after login: %s', next_page)
+        
         if not next_page or url_parse(next_page).netloc != '':
             next_page = url_for('dashboard.index')
         
-        # Log successful login
-        current_app.logger.info(f'User {user.username} logged in successfully')
+        # Log successful login and session info
+        current_app.logger.info('User %s logged in successfully', user.username)
+        current_app.logger.debug('Session after login: %s', dict(session))
+        current_app.logger.debug('Remember cookie set: %s', form.remember_me.data)
         return redirect(next_page)
     
     # Log form errors if any
     if form.errors:
-        current_app.logger.warning(f'Login form errors: {form.errors}')
+        current_app.logger.warning('Login form errors: %s', form.errors)
     
+    # Log the CSRF token status
+    current_app.logger.debug('CSRF Token present: %s', 'csrf_token' in session)
     return render_template('login.html', title='Sign In', form=form)
 
 @auth_bp.route('/logout')

@@ -117,10 +117,10 @@ def create_app(config_name='default'):
     file_handler.setFormatter(logging.Formatter(
         '%(asctime)s %(levelname)s: %(message)s [in %(pathname)s:%(lineno)d]'
     ))
-    file_handler.setLevel(logging.INFO)
+    file_handler.setLevel(logging.DEBUG)
     app.logger.addHandler(file_handler)
     
-    app.logger.setLevel(logging.INFO)
+    app.logger.setLevel(logging.DEBUG)
     app.logger.info('Canvas-Todoist startup')
     
     # Add scheduler configuration
@@ -135,10 +135,13 @@ def create_app(config_name='default'):
     app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=7)
     app.config['SESSION_REFRESH_EACH_REQUEST'] = True
     
+    # Debug mode configuration
+    app.debug = True  # Enable debug mode
+    
     # Initialize extensions
     db.init_app(app)
     login_manager.init_app(app)
-    migrate.init_app(app, db)
+    migrate.init_app(app)
     cache.init_app(app)
     csrf.init_app(app)
     scheduler.init_app(app)
