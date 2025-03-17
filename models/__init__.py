@@ -113,6 +113,28 @@ class SyncHistory(db.Model):
     # Relationships
     user = db.relationship('User', backref=db.backref('sync_history', lazy='dynamic'))
 
+class Subscription(db.Model):
+    """Model for storing subscription information."""
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    stripe_subscription_id = db.Column(db.String(100), unique=True)
+    stripe_customer_id = db.Column(db.String(100))
+    status = db.Column(db.String(20), default='inactive')  # 'active', 'inactive', 'canceled', 'trial'
+    plan_id = db.Column(db.String(100))
+    plan_name = db.Column(db.String(50))
+    price_id = db.Column(db.String(100))
+    price_amount = db.Column(db.Integer)  # in cents
+    billing_cycle = db.Column(db.String(20))  # 'monthly', 'yearly'
+    start_date = db.Column(db.DateTime)
+    end_date = db.Column(db.DateTime)
+    trial_end = db.Column(db.DateTime)
+    cancel_at_period_end = db.Column(db.Boolean, default=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relationships
+    user = db.relationship('User', backref=db.backref('subscriptions', lazy='dynamic'))
+
 @login_manager.user_loader
 def load_user(id):
     """Load user for Flask-Login."""
