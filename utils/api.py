@@ -4,7 +4,7 @@ API client utilities for the application.
 
 import logging
 from services.canvas_api import CanvasAPI
-from services.todoist_api import TodoistAPI
+from services.todoist_api import TodoistClient
 
 # Configure logging
 logging.basicConfig(
@@ -31,7 +31,7 @@ def get_api_clients(user):
         
         # Initialize Todoist client
         if user.get_todoist_token():
-            todoist_client = TodoistAPI(
+            todoist_client = TodoistClient(
                 api_token=user.get_todoist_token()
             )
         

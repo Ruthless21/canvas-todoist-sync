@@ -14,7 +14,7 @@ class Config:
     """Base configuration class."""
     # Flask configuration
     SECRET_KEY = os.environ.get('SECRET_KEY') or 'dev-key-please-change-in-production'
-    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or 'sqlite:///app.db'
+    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or 'sqlite:///canvas_todoist.db'
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     
     # Flask-Caching configuration
@@ -26,11 +26,11 @@ class Config:
     
     # Session configuration
     PERMANENT_SESSION_LIFETIME = timedelta(days=7)
-    
-    # Security configuration
-    SESSION_COOKIE_SECURE = os.environ.get('FLASK_ENV') == 'production'
-    REMEMBER_COOKIE_SECURE = os.environ.get('FLASK_ENV') == 'production'
+    SESSION_COOKIE_NAME = 'session'  # Use standard Flask session cookie name
+    SESSION_COOKIE_SECURE = os.environ.get('SESSION_COOKIE_SECURE', 'True').lower() == 'true'
     SESSION_COOKIE_HTTPONLY = True
+    SESSION_COOKIE_SAMESITE = 'Lax'
+    REMEMBER_COOKIE_SECURE = os.environ.get('SESSION_COOKIE_SECURE', 'True').lower() == 'true'
     REMEMBER_COOKIE_HTTPONLY = True
     
     # Stripe configuration
@@ -53,24 +53,19 @@ class DevelopmentConfig(Config):
     """Development configuration."""
     DEBUG = True
     SQLALCHEMY_ECHO = True
-    SESSION_COOKIE_SECURE = False
-    REMEMBER_COOKIE_SECURE = False
+    # Don't override session security settings here
     
 class TestingConfig(Config):
     """Testing configuration."""
     TESTING = True
     SQLALCHEMY_DATABASE_URI = 'sqlite:///:memory:'
     WTF_CSRF_ENABLED = False
-    SESSION_COOKIE_SECURE = False
-    REMEMBER_COOKIE_SECURE = False
+    # Don't override session security settings here
     
 class ProductionConfig(Config):
     """Production configuration."""
     DEBUG = False
     SQLALCHEMY_ECHO = False
-    # Set up for HTTPS
-    SESSION_COOKIE_SECURE = True
-    REMEMBER_COOKIE_SECURE = True
     # Use more sophisticated caching if Redis is available
     CACHE_TYPE = os.environ.get('CACHE_TYPE') or 'simple'
     # Additional cache config
@@ -93,17 +88,13 @@ class PythonAnywhereConfig(Config):
     CACHE_THRESHOLD = 500  # Maximum number of items the cache will store
     CACHE_DEFAULT_TIMEOUT = 900  # 15 minutes
     
-    # MySQL configuration for PythonAnywhere
-    # Format: mysql://<username>:<password>@<username>.mysql.pythonanywhere-services.com/<dbname>
-    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or 'sqlite:///canvas_todoist.db'
+    # MySQL configuration for PythonAnywhere (use environment variables)
+    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or \
+        f"mysql+pymysql://{os.environ.get('DB_USERNAME')}:{os.environ.get('DB_PASSWORD')}@" \
+        f"{os.environ.get('DB_HOST', 'localhost')}/{os.environ.get('DB_NAME', 'canvas_todoist')}"
+    
     # Use smaller VARCHAR lengths for MySQL compatibility with specific charsets
     MYSQL_INDEXES_MAX_LENGTH = 191  # For utf8mb4 compatibility
-    
-    # Session and cookie settings
-    SESSION_COOKIE_SECURE = False  # Temporarily disable for debugging
-    REMEMBER_COOKIE_SECURE = False  # Temporarily disable for debugging
-    SESSION_COOKIE_HTTPONLY = True
-    REMEMBER_COOKIE_HTTPONLY = True
 
 # Configuration dictionary for easy access
 config = {

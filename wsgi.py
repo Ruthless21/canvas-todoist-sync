@@ -9,7 +9,7 @@ import logging
 from logging import FileHandler, WARNING
 
 # Add the project directory to the Python path
-project_path = '/home/TatumParr/canvas-todoist-sync'
+project_path = os.environ.get('PROJECT_PATH', '/home/TatumParr/canvas-todoist-sync')
 if project_path not in sys.path:
     sys.path.insert(0, project_path)
 

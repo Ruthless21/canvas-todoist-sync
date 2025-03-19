@@ -212,14 +212,14 @@
                             <i class="bi bi-check-circle me-2"></i>You have premium access!
                         </div>
                         <div class="d-grid">
-                            <a href="{{ url_for('stripe.manage_subscription') }}" 
+                            <a href="{{ url_for('payments.manage_subscription') }}" 
                                class="btn btn-outline-primary" 
                                id="manage-subscription-btn">
                                 <i class="bi bi-gear me-2"></i>Manage Subscription
                             </a>
                         </div>
                     {% else %}
-                        <form action="{{ url_for('stripe.create_checkout_session') }}" method="POST" id="payment-form">
+                        <form action="{{ url_for('payments.create_checkout_session') }}" method="POST" id="payment-form">
                             <input type="hidden" name="price_id" id="price-id" value="{{ stripe_monthly_price_id }}">
                             <div class="d-grid">
                                 <button type="submit" class="btn btn-primary" id="checkout-button">

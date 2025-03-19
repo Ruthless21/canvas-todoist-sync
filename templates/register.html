@@ -8,7 +8,7 @@
                 <h4 class="mb-0 text-center"><i class="bi bi-person-plus me-2"></i>Create an Account</h4>
             </div>
             <div class="card-body p-4">
-                <form method="POST" action="">
+                <form method="POST" action="{{ url_for('auth.register') }}">
                     {{ form.hidden_tag() }}
                     
                     <div class="mb-3">

@@ -37,14 +37,7 @@ def login():
         # Clear session first to avoid issues
         session.clear()
         
-        # Store user ID directly in session for better reliability
-        session['user_id'] = user.id
-        session['_user_id'] = user.id  # Flask-Login uses this key
-        
-        # Set session permanent
-        session.permanent = True
-        
-        # Login user
+        # Login user with Flask-Login
         login_success = login_user(user, remember=form.remember_me.data)
         current_app.logger.debug('login_user() result: %s', login_success)
         
@@ -87,11 +80,7 @@ def logout():
     # Create response with redirect
     response = redirect(url_for('main.index'))
     
-    # Clear the session cookie (in case Flask-Login's logout_user didn't)
-    response.delete_cookie('session')
-    
-    # Also clear any other cookies that might exist from previous configurations
-    response.delete_cookie('canvas_todoist_session')
+    # No need to explicitly delete cookies - already handled by session.clear() and logout_user()
     
     return response
 
@@ -117,9 +106,7 @@ def test_redirect():
     """Test route to diagnose redirect issues."""
     current_app.logger.debug('Test redirect route accessed')
     
-    # Use different redirect methods to see which one works
-    
-    # Method 1: Flask redirect function
+    # Use Flask redirect function - simplify to use only one approach
     current_app.logger.debug('Using Flask redirect function')
     return redirect(url_for('dashboard.index'))
     
