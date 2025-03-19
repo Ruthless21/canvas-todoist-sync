@@ -109,3 +109,42 @@ class SyncService:
                 created_tasks.append(task)
         
         return created_tasks
+        
+    def sync_assignments_to_todoist(self, assignments, project_id):
+        """Sync Canvas assignments directly to Todoist without fetching them first"""
+        print(f"Syncing {len(assignments)} assignments to Todoist project {project_id}")
+        
+        # Get all courses to map course IDs to names
+        courses = self.canvas_api.get_courses()
+        course_map = {course['id']: course['name'] for course in courses}
+        
+        # Create tasks in Todoist
+        created_tasks = []
+        for assignment in assignments:
+            # Skip assignments that have been submitted
+            if assignment.get('submission') and assignment['submission'].get('submitted_at'):
+                print(f"Skipping submitted assignment: {assignment['name']}")
+                continue
+                
+            # Get course name if available
+            course_id = assignment.get('course_id')
+            course_name = course_map.get(course_id) if course_id else None
+            
+            # Format assignment as task
+            task_data = self.format_assignment_as_task(assignment, course_name)
+            
+            # Add project_id
+            task_data['project_id'] = project_id
+            
+            print(f"Creating task: {task_data['content']}")
+            
+            # Create task in Todoist
+            task = self.todoist_client.create_task(**task_data)
+            if task:
+                print(f"Task created: {task}")
+                created_tasks.append(task)
+            else:
+                print(f"Failed to create task for assignment: {assignment['name']}")
+        
+        print(f"Created {len(created_tasks)} tasks in Todoist")
+        return created_tasks

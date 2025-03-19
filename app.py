@@ -342,14 +342,88 @@ def create_app(config_name='default'):
                     'success': False,
                     'error': 'Missing required parameters: course_id and project_id'
                 }), 400
+            
+            # Get API clients for the current user
+            from utils.api import get_api_clients
+            canvas_client, todoist_client, sync_service = get_api_clients()
+            
+            if not canvas_client or not todoist_client or not sync_service:
+                return jsonify({
+                    'success': False,
+                    'error': 'API clients not initialized. Please check your API credentials.'
+                }), 400
+            
+            current_app.logger.debug(f"Starting sync from Canvas course {course_id} to Todoist project {project_id}")
+            
+            # Perform the actual sync
+            start_time = datetime.datetime.now()
+            try:
+                # Get course assignments
+                current_app.logger.debug(f"Fetching assignments for course {course_id}")
+                assignments = canvas_client.get_assignments(course_id)
+                current_app.logger.debug(f"Found {len(assignments)} assignments")
                 
-            # Return debug success for now
-            return jsonify({
-                'success': True,
-                'message': f'Direct sync endpoint reached - Course ID: {course_id}, Project ID: {project_id}',
-                'course_id': course_id,
-                'project_id': project_id
-            })
+                # Sync assignments to Todoist
+                current_app.logger.debug(f"Syncing {len(assignments)} assignments to Todoist project {project_id}")
+                result = sync_service.sync_assignments_to_todoist(assignments, project_id)
+                current_app.logger.debug(f"Sync result: {result}")
+                
+                end_time = datetime.datetime.now()
+                duration = (end_time - start_time).total_seconds()
+                
+                # Create sync history record
+                sync_history = SyncHistory(
+                    user_id=current_user.id,
+                    sync_type='canvas_to_todoist',
+                    status='success',
+                    items_count=len(assignments),
+                    details=json.dumps({
+                        'course_id': course_id,
+                        'project_id': project_id,
+                        'assignments_count': len(assignments),
+                        'duration_seconds': duration
+                    }),
+                    timestamp=datetime.datetime.now()
+                )
+                db.session.add(sync_history)
+                db.session.commit()
+                
+                return jsonify({
+                    'success': True,
+                    'message': f'Successfully synced {len(assignments)} assignments from Canvas to Todoist',
+                    'data': {
+                        'assignments_synced': len(assignments),
+                        'course_id': course_id,
+                        'project_id': project_id,
+                        'duration_seconds': duration
+                    }
+                })
+                
+            except Exception as e:
+                current_app.logger.error(f"Error syncing assignments: {str(e)}")
+                import traceback
+                current_app.logger.error(traceback.format_exc())
+                
+                # Create error sync history record
+                sync_history = SyncHistory(
+                    user_id=current_user.id,
+                    sync_type='canvas_to_todoist',
+                    status='error',
+                    items_count=0,
+                    details=json.dumps({
+                        'course_id': course_id,
+                        'project_id': project_id,
+                        'error': str(e)
+                    }),
+                    timestamp=datetime.datetime.now()
+                )
+                db.session.add(sync_history)
+                db.session.commit()
+                
+                return jsonify({
+                    'success': False,
+                    'error': f"Error syncing assignments: {str(e)}"
+                }), 500
             
         except Exception as e:
             current_app.logger.error(f"Error in direct sync endpoint: {str(e)}")
