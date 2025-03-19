@@ -3,7 +3,7 @@ Dashboard blueprint.
 Handles main dashboard display and API credential management.
 """
 
-from flask import render_template, redirect, url_for, flash, request, jsonify
+from flask import render_template, redirect, url_for, flash, request, jsonify, session
 from flask_login import login_required, current_user
 from blueprints import dashboard_bp
 from models import User, db
@@ -28,6 +28,18 @@ def index():
         
         if not canvas_client or not todoist_client:
             current_app.logger.debug('API clients not configured, redirecting to settings')
+            
+            # Add specific flash messages about what's missing
+            if not canvas_client and not todoist_client:
+                flash('You need to configure both Canvas and Todoist API credentials before accessing the dashboard. Please set them up in the API Credentials tab below.', 'warning')
+            elif not canvas_client:
+                flash('You need to configure your Canvas API credentials before accessing the dashboard. Please set them up in the API Credentials tab below.', 'warning')
+            elif not todoist_client:
+                flash('You need to configure your Todoist API credentials before accessing the dashboard. Please set them up in the API Credentials tab below.', 'warning')
+                
+            # Set session variable to trigger credentials modal
+            session['show_api_creds_modal'] = True
+            
             return redirect(url_for('settings.index'))
         
         # Gather data for dashboard display
