@@ -20,18 +20,10 @@ from datetime import datetime, timedelta
 import stripe
 import socket
 from config import Config, config
+from flask_wtf.csrf import csrf_exempt
 
 # Load environment variables
 load_dotenv()
-
-# Check if Flask-WTF version supports csrf_exempt
-HAS_CSRF_EXEMPT = False
-try:
-    from flask_wtf.csrf import csrf_exempt
-    HAS_CSRF_EXEMPT = True
-except ImportError:
-    # Older Flask-WTF version without csrf_exempt
-    pass
 
 # URL parsing helper
 def url_parse(url):
@@ -198,17 +190,6 @@ def create_app(config_name='default'):
             return True
         return False
     
-    # Create a custom decorator for CSRF exemption (compatible with all Flask-WTF versions)
-    def csrf_exempt_route(view_function):
-        """A decorator that exempts a view from CSRF protection."""
-        if HAS_CSRF_EXEMPT:
-            # Use the built-in decorator if available
-            return csrf_exempt(view_function)
-        else:
-            # For older Flask-WTF versions
-            view_function.csrf_exempt = True
-            return view_function
-    
     # User loader for Flask-Login - simplified and more reliable
     @login_manager.user_loader
     def load_user(user_id):
@@ -314,7 +295,7 @@ def create_app(config_name='default'):
     
     @app.route('/api/sync', methods=['POST'])
     @app.route('/api/sync/<csrf_token>', methods=['POST'])
-    @csrf_exempt_route
+    @csrf_exempt
     def api_sync(csrf_token=None):
         """Direct route for the sync API endpoint."""
         from flask import jsonify, request
@@ -378,20 +359,20 @@ def create_app(config_name='default'):
         
     @app.route('/api/refresh_data', methods=['POST'])
     @app.route('/api/refresh_data/<csrf_token>', methods=['POST'])
-    @csrf_exempt_route
+    @csrf_exempt
     def api_refresh(csrf_token=None):
         """Direct route for the refresh data API endpoint."""
         app.logger.debug(f"CSRF Token in URL for refresh: {csrf_token}")
         return refresh_data()
         
     @app.route('/api/test_canvas', methods=['POST'])
-    @csrf_exempt_route
+    @csrf_exempt
     def api_test_canvas():
         """Direct route for the test Canvas API endpoint."""
         return test_canvas_api()
         
     @app.route('/api/test_todoist', methods=['POST'])
-    @csrf_exempt_route
+    @csrf_exempt
     def api_test_todoist():
         """Direct route for the test Todoist API endpoint."""
         return test_todoist_api()
