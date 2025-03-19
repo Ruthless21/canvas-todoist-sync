@@ -137,9 +137,28 @@ def create_app(config_name='default'):
     app.config['SESSION_COOKIE_NAME'] = 'session'  # Use default Flask session cookie name
     app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=7)
     app.config['SESSION_REFRESH_EACH_REQUEST'] = True
-    app.config['SESSION_COOKIE_SECURE'] = True  # Only send cookie over HTTPS
+    
+    # Get domain from environment or config
+    domain = os.environ.get('DOMAIN') or app.config.get('DOMAIN')
+    
+    # Only set secure cookie in production environments with HTTPS
+    is_secure = os.environ.get('SESSION_COOKIE_SECURE', 'True').lower() == 'true'
+    app.config['SESSION_COOKIE_SECURE'] = is_secure
     app.config['SESSION_COOKIE_HTTPONLY'] = True  # Prevent JavaScript access
     app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'  # CSRF protection
+    
+    # Set remember cookie settings to match session settings
+    app.config['REMEMBER_COOKIE_SECURE'] = is_secure
+    app.config['REMEMBER_COOKIE_HTTPONLY'] = True
+    app.config['REMEMBER_COOKIE_DURATION'] = timedelta(days=14)  # Longer than session
+    
+    # Server domain name
+    if domain and domain != 'localhost:5000':
+        app.config['SERVER_NAME'] = domain
+        # PythonAnywhere uses a subdomain setup
+        if 'pythonanywhere.com' in domain:
+            app.config['SESSION_COOKIE_DOMAIN'] = '.'+domain  # Include subdomain
+    
     app.config['SESSION_TYPE'] = 'null'  # Use Flask's default session implementation instead of filesystem
     app.config['SECRET_KEY'] = app.config['SECRET_KEY']  # Reuse the same secret key
     
@@ -147,7 +166,7 @@ def create_app(config_name='default'):
     login_manager.login_view = 'auth.login'
     login_manager.login_message = 'Please log in to access this page.'
     login_manager.login_message_category = 'info'
-    login_manager.session_protection = None  # Disable strict session protection temporarily
+    login_manager.session_protection = 'basic'  # Use basic protection instead of None
     
     # Debug mode configuration
     app.debug = True  # Enable debug mode

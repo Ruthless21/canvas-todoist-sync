@@ -34,9 +34,6 @@ def login():
             flash('Invalid username or password', 'danger')
             return redirect(url_for('auth.login'))
         
-        # Clear session first to avoid issues
-        session.clear()
-        
         # Login user with Flask-Login
         login_success = login_user(user, remember=form.remember_me.data)
         current_app.logger.debug('login_user() result: %s', login_success)
