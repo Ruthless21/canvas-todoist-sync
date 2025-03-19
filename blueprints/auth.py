@@ -34,21 +34,59 @@ def login():
             flash('Invalid username or password', 'danger')
             return redirect(url_for('auth.login'))
         
-        # Login user with Flask-Login
-        login_success = login_user(user, remember=form.remember_me.data)
-        current_app.logger.debug('login_user() result: %s', login_success)
-        
-        if not login_success:
-            current_app.logger.error('Login user failed despite valid credentials')
-            flash('Login failed. Please try again.', 'danger')
+        # Check if user is active
+        if not user.is_active:
+            current_app.logger.error('Login failed: User account is inactive')
+            flash('Your account is inactive. Please contact support.', 'danger')
             return redirect(url_for('auth.login'))
         
-        # Update last login time
-        user.last_login = datetime.utcnow()
-        db.session.commit()
+        # Log important user attributes
+        current_app.logger.debug('User attempting login: ID=%s, Username=%s, Active=%s', 
+                             user.id, user.username, user.is_active)
         
-        current_app.logger.debug('Current authentication status: %s', current_user.is_authenticated)
-        current_app.logger.debug('Session data: %s', dict(session))
+        # Make sure Flask-Login's session management is using the right cookie name
+        # These should match config settings
+        current_app.logger.debug('Session cookie name: %s', current_app.config.get('SESSION_COOKIE_NAME'))
+        current_app.logger.debug('Remember cookie name: %s', current_app.config.get('REMEMBER_COOKIE_NAME', 'remember_token'))
+        
+        # Try to get the secret key - don't log the actual key, just check if it exists
+        current_app.logger.debug('Secret key exists: %s', bool(current_app.config.get('SECRET_KEY')))
+        
+        # Make sure the session is ready for login
+        session.permanent = True
+        
+        # Login user with Flask-Login
+        try:
+            login_success = login_user(user, remember=form.remember_me.data)
+            current_app.logger.debug('login_user() result: %s', login_success)
+            
+            # Check for flask_login messages in session
+            current_app.logger.debug('Session after login: %s', dict(session))
+            
+            if not login_success:
+                current_app.logger.error('Login user failed despite valid credentials')
+                flash('Login failed. Please try again.', 'danger')
+                return redirect(url_for('auth.login'))
+            
+            # Update last login time
+            user.last_login = datetime.utcnow()
+            db.session.commit()
+            
+            # Explicitly check if user was added to session by Flask-Login
+            if '_user_id' in session:
+                current_app.logger.debug('User ID in session: %s', session.get('_user_id'))
+            else:
+                current_app.logger.error('Flask-Login did not add _user_id to session')
+                
+            # Force Flask-Login to set cookies correctly
+            if hasattr(current_app, 'login_manager'):
+                current_app.logger.debug('Login manager exists')
+            
+            current_app.logger.debug('Current authentication status: %s', current_user.is_authenticated)
+        except Exception as e:
+            current_app.logger.exception('Exception during login_user(): %s', str(e))
+            flash('An error occurred during login. Please try again.', 'danger')
+            return redirect(url_for('auth.login'))
         
         # Show success message only if actually logged in
         if current_user.is_authenticated:
