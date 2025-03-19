@@ -45,7 +45,7 @@
                             </button>
                         </div>
                         
-                        <form method="POST" action="{{ url_for('dashboard.api_credentials') }}" id="api-credentials-form">
+                        <form method="POST" action="{{ url_for('settings.index') }}" id="api-credentials-form">
                             {{ api_form.hidden_tag() }}
                             
                             <div class="mb-4">
@@ -194,7 +194,7 @@
                         <h5 class="mb-0"><i class="bi bi-person me-2"></i>Account Settings</h5>
                     </div>
                     <div class="card-body">
-                        <form method="POST" action="{{ url_for('dashboard.update_account') }}">
+                        <form method="POST" action="{{ url_for('settings.index') }}">
                             {{ account_form.hidden_tag() }}
                             
                             <div class="mb-3">
@@ -223,7 +223,7 @@
                         <h5 class="mb-0"><i class="bi bi-shield-lock me-2"></i>Change Password</h5>
                     </div>
                     <div class="card-body">
-                        <form method="POST" action="{{ url_for('dashboard.change_password') }}">
+                        <form method="POST" action="{{ url_for('settings.index') }}">
                             {{ password_form.hidden_tag() }}
                             
                             <div class="mb-3">
