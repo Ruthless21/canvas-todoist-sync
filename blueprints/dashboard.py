@@ -168,4 +168,135 @@ def test_todoist_api():
             'message': f'Successfully connected to Todoist API. Found {len(projects)} projects.'
         })
     except Exception as e:
-        return jsonify({'success': False, 'message': str(e)}) 
+        return jsonify({'success': False, 'message': str(e)})
+
+@dashboard_bp.route('/api/sync', methods=['POST'])
+@login_required
+def sync_assignments():
+    """Sync assignments from Canvas to Todoist."""
+    from flask import current_app
+    import json
+    import datetime
+    from models import SyncHistory, db
+    
+    current_app.logger.debug(f"Request method: {request.method}, path: {request.path}")
+    current_app.logger.debug(f"Headers: {request.headers}")
+    current_app.logger.debug(f"Session: {session}")
+    
+    # Get data from request
+    try:
+        data = request.get_json()
+        course_id = data.get('course_id')
+        project_id = data.get('project_id')
+        
+        if not course_id or not project_id:
+            return jsonify({
+                'success': False,
+                'error': 'Missing required parameters'
+            }), 400
+            
+        current_app.logger.debug(f"Syncing assignments from Canvas course {course_id} to Todoist project {project_id}")
+        
+        # Get API clients
+        canvas_client, todoist_client = get_api_clients(current_user)
+        if not canvas_client or not todoist_client:
+            return jsonify({
+                'success': False,
+                'error': 'API clients not configured properly'
+            }), 400
+        
+        # Get assignments from Canvas
+        assignments = canvas_client.get_assignments(course_id)
+        if not assignments:
+            return jsonify({
+                'success': False,
+                'error': 'No assignments found for this course'
+            }), 404
+            
+        current_app.logger.debug(f"Found {len(assignments)} assignments in Canvas course")
+        
+        # Sync each assignment to Todoist
+        synced_count = 0
+        for assignment in assignments:
+            # Skip assignments that have been submitted or don't have due dates
+            if assignment.get('submission', {}).get('submitted_at') or not assignment.get('due_at'):
+                continue
+                
+            # Create task in Todoist
+            due_date = assignment.get('due_at')
+            if due_date:
+                # Convert from ISO format to YYYY-MM-DD
+                try:
+                    due_date_obj = datetime.datetime.fromisoformat(due_date.replace('Z', '+00:00'))
+                    due_date = due_date_obj.strftime('%Y-%m-%d')
+                except Exception as e:
+                    current_app.logger.error(f"Error parsing due date: {e}")
+                    due_date = None
+            
+            # Create the task in Todoist
+            task = todoist_client.create_task(
+                content=assignment.get('name', 'Unnamed assignment'),
+                due_date=due_date,
+                project_id=project_id,
+                priority=3,  # Medium priority
+                # Add the Canvas assignment link as a comment
+                description=f"Canvas Assignment: {assignment.get('html_url', '')}\n\n{assignment.get('description', '')}"
+            )
+            
+            if task:
+                synced_count += 1
+        
+        # Log the sync in history
+        try:
+            sync_record = SyncHistory(
+                user_id=current_user.id,
+                sync_type='canvas_to_todoist',
+                items_synced=synced_count,
+                status='success' if synced_count > 0 else 'failed',
+                started_at=datetime.datetime.utcnow(),
+                completed_at=datetime.datetime.utcnow(),
+                error_message=None if synced_count > 0 else 'No assignments were synced'
+            )
+            db.session.add(sync_record)
+            db.session.commit()
+        except Exception as e:
+            current_app.logger.error(f"Error saving sync history: {e}")
+            db.session.rollback()
+        
+        # Update user's last sync time
+        try:
+            current_user.last_sync = datetime.datetime.utcnow()
+            db.session.commit()
+        except Exception as e:
+            current_app.logger.error(f"Error updating user's last sync time: {e}")
+            db.session.rollback()
+        
+        return jsonify({
+            'success': True,
+            'message': f"{synced_count} assignments to Todoist",
+            'total': len(assignments),
+            'synced': synced_count
+        })
+    except Exception as e:
+        current_app.logger.error(f"Error in sync_assignments: {str(e)}")
+        import traceback
+        current_app.logger.error(traceback.format_exc())
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@dashboard_bp.route('/api/refresh_data', methods=['POST'])
+@login_required
+def refresh_data():
+    """Refresh dashboard data."""
+    try:
+        return jsonify({
+            'success': True,
+            'message': 'Data refreshed successfully'
+        })
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500 

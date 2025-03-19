@@ -17,16 +17,30 @@ class TodoistClient:
         
         self.api = TodoistAPI(self.api_token)
     
-    def create_task(self, content, due_date=None, project_id=None, priority=None, labels=None):
+    def create_task(self, content, due_date=None, project_id=None, priority=None, labels=None, description=None):
         """Create a new task in Todoist"""
         try:
-            task = self.api.add_task(
-                content=content,
-                due_date=due_date,
-                project_id=project_id,
-                priority=priority,
-                labels=labels
-            )
+            task_args = {
+                'content': content,
+                'due_date': due_date,
+                'project_id': project_id,
+                'priority': priority,
+                'labels': labels
+            }
+            
+            # Filter out None values
+            task_args = {k: v for k, v in task_args.items() if v is not None}
+            
+            # Create the task
+            task = self.api.add_task(**task_args)
+            
+            # Add description as a comment if provided
+            if description and task:
+                self.api.add_comment(
+                    task_id=task.id,
+                    content=description
+                )
+                
             return task
         except Exception as error:
             print(f"Error creating Todoist task: {error}")
