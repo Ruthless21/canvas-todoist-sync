@@ -110,4 +110,41 @@ def force_sync():
         return jsonify({
             'success': False,
             'message': str(e)
-        }) 
+        })
+
+@sync_bp.route('/update_sync_settings', methods=['POST'])
+@login_required
+def update_sync_settings():
+    """Update user sync settings."""
+    from forms import SyncSettingsForm
+    
+    form = SyncSettingsForm()
+    if form.validate_on_submit():
+        try:
+            # Get or create sync settings for user
+            sync_settings = SyncSettings.query.filter_by(user_id=current_user.id).first()
+            if not sync_settings:
+                sync_settings = SyncSettings(user_id=current_user.id)
+                db.session.add(sync_settings)
+            
+            # Update settings from form
+            sync_settings.sync_frequency = form.frequency.data
+            
+            # Handle enabled state
+            if form.enabled.data:
+                current_user.sync_preferences = 'auto'
+            else:
+                current_user.sync_preferences = 'manual'
+            
+            # Save changes
+            db.session.commit()
+            flash('Sync settings updated successfully', 'success')
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Error updating sync settings: {str(e)}', 'danger')
+    else:
+        for field, errors in form.errors.items():
+            for error in errors:
+                flash(f"{getattr(form, field).label.text}: {error}", 'danger')
+    
+    return redirect(url_for('settings.index')) 
