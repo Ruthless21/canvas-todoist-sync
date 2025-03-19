@@ -152,9 +152,9 @@ def create_app(config_name='default'):
     # Debug mode configuration
     app.debug = True  # Enable debug mode
     
-    # Initialize extensions
-    db.init_app(app)
+    # Initialize extensions with login_manager first
     login_manager.init_app(app)
+    db.init_app(app)
     migrate.init_app(app)
     cache.init_app(app)
     csrf.init_app(app)
@@ -165,7 +165,12 @@ def create_app(config_name='default'):
     def load_user(user_id):
         try:
             app.logger.debug('Loading user with ID: %s', user_id)
-            return User.query.get(int(user_id))
+            user = User.query.get(int(user_id))
+            if user:
+                app.logger.debug('User loaded successfully: %s', user.username)
+            else:
+                app.logger.warning('No user found with ID: %s', user_id)
+            return user
         except Exception as e:
             app.logger.error('Error loading user: %s', str(e))
             return None
@@ -178,6 +183,12 @@ def create_app(config_name='default'):
             app.logger.debug('Headers: %s', request.headers)
             app.logger.debug('Session: %s', dict(session))
             app.logger.debug('User: %s', current_user)
+            
+            # Check session cookie
+            if 'session' in request.cookies:
+                app.logger.debug('Session cookie found: %s', request.cookies.get('session'))
+            else:
+                app.logger.warning('No session cookie found in request')
             
             # Clear old session cookie if present - this is causing problems
             if 'canvas_todoist_session' in request.cookies:
@@ -204,6 +215,27 @@ def create_app(config_name='default'):
                 response.delete_cookie('canvas_todoist_session')
             
             return response
+
+    # Add a debug route to check session and authentication status
+    @app.route('/debug/auth-status')
+    def debug_auth_status():
+        if not app.debug:
+            return "Debug routes are only available in debug mode.", 403
+            
+        output = {
+            "is_authenticated": current_user.is_authenticated,
+            "session": dict(session),
+            "session_cookies": {k: v for k, v in request.cookies.items() if k.lower().startswith('sess')},
+            "current_user": str(current_user),
+        }
+        
+        if current_user.is_authenticated:
+            output["username"] = current_user.username
+            output["user_id"] = current_user.id
+        
+        response = jsonify(output)
+        response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+        return response
 
     # Add error handlers
     @app.errorhandler(404)

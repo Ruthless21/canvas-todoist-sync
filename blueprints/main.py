@@ -24,12 +24,24 @@ def index():
         user_id = session.get('user_id')
         current_app.logger.debug('Session has user_id but user not authenticated, restoring user: %s', user_id)
         
-        # Try to recover user authentication
-        user = User.query.get(int(user_id))
-        if user:
-            login_user(user)
-            session.modified = True
-            current_app.logger.debug('Recovered authentication for user: %s', user.username)
+        try:
+            # Try to recover user authentication
+            user = User.query.get(int(user_id))
+            if user:
+                login_success = login_user(user)
+                current_app.logger.debug('Login recovery result: %s', login_success)
+                
+                # Ensure both session keys are set
+                session['user_id'] = user.id
+                session['_user_id'] = user.id
+                session.modified = True
+                
+                if login_success:
+                    current_app.logger.debug('Recovered authentication for user: %s', user.username)
+                else:
+                    current_app.logger.warning('Failed to recover authentication for user: %s', user.username)
+        except Exception as e:
+            current_app.logger.error('Error recovering authentication: %s', str(e))
     
     # For logged in users, display a status message
     if current_user.is_authenticated:

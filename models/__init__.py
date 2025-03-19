@@ -37,6 +37,16 @@ class User(UserMixin, db.Model):
     sync_preferences = db.Column(db.String(20), default='auto')
     notification_preferences = db.Column(db.String(20), default='all')
     
+    # Explicitly define Flask-Login properties
+    @property
+    def is_authenticated(self):
+        """Return True if the user is authenticated."""
+        return True
+    
+    def get_id(self):
+        """Return the user ID as a string."""
+        return str(self.id)
+    
     def set_password(self, password):
         """Set user password."""
         self.password_hash = generate_password_hash(password)
