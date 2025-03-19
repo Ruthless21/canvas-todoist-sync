@@ -13,6 +13,7 @@ settings_bp = Blueprint('settings', __name__)
 admin_bp = Blueprint('admin', __name__)
 sync_bp = Blueprint('sync', __name__)
 payments_bp = Blueprint('payments', __name__)
+history_bp = Blueprint('history', __name__)
 
 # Import routes after blueprint creation to avoid circular imports
-from blueprints import main, auth, dashboard, settings, admin, sync, payments 
+from blueprints import main, auth, dashboard, settings, admin, sync, payments, history 

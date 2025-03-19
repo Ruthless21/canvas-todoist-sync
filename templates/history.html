@@ -1,0 +1,273 @@
+{% extends "base.html" %}
+{% block title %}Sync History - Canvas-Todoist Sync{% endblock %}
+
+{% block head %}
+    {{ super() }}
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.1/dist/chart.min.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h1 class="h3 mb-0">
+                <i class="bi bi-clock-history me-2 text-primary"></i>
+                Sync History
+            </h1>
+            <p class="text-muted">
+                View and manage your synchronization history
+            </p>
+        </div>
+        <div class="col-md-4 text-end">
+            <form action="{{ url_for('history.clear_history') }}" method="post" onsubmit="return confirm('Are you sure you want to clear all sync history? This cannot be undone.');">
+                <button type="submit" class="btn btn-outline-danger">
+                    <i class="bi bi-trash me-1"></i>
+                    Clear History
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3 mb-3 mb-md-0">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body d-flex">
+                    <div class="me-3">
+                        <div class="bg-primary bg-opacity-10 p-3 rounded">
+                            <i class="bi bi-arrow-repeat text-primary fs-4"></i>
+                        </div>
+                    </div>
+                    <div>
+                        <h5 class="mb-0">{{ stats.total }}</h5>
+                        <p class="text-muted mb-0">Total Syncs</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3 mb-md-0">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body d-flex">
+                    <div class="me-3">
+                        <div class="bg-success bg-opacity-10 p-3 rounded">
+                            <i class="bi bi-check-circle text-success fs-4"></i>
+                        </div>
+                    </div>
+                    <div>
+                        <h5 class="mb-0">{{ stats.successful }}</h5>
+                        <p class="text-muted mb-0">Successful</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3 mb-md-0">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body d-flex">
+                    <div class="me-3">
+                        <div class="bg-danger bg-opacity-10 p-3 rounded">
+                            <i class="bi bi-x-circle text-danger fs-4"></i>
+                        </div>
+                    </div>
+                    <div>
+                        <h5 class="mb-0">{{ stats.failed }}</h5>
+                        <p class="text-muted mb-0">Failed</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body d-flex">
+                    <div class="me-3">
+                        <div class="bg-info bg-opacity-10 p-3 rounded">
+                            <i class="bi bi-clipboard-check text-info fs-4"></i>
+                        </div>
+                    </div>
+                    <div>
+                        <h5 class="mb-0">{{ stats.items_synced }}</h5>
+                        <p class="text-muted mb-0">Items Synced</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Chart & Last Sync Card -->
+    <div class="row mb-4">
+        <div class="col-md-8 mb-4 mb-md-0">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-white py-3">
+                    <h5 class="mb-0">Sync Activity (Last 14 Days)</h5>
+                </div>
+                <div class="card-body">
+                    <div style="height: 250px;">
+                        <canvas id="syncChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-white py-3">
+                    <h5 class="mb-0">Last Successful Sync</h5>
+                </div>
+                <div class="card-body">
+                    {% if stats.last_successful %}
+                    <div class="d-flex mb-3">
+                        <div class="me-3">
+                            <i class="bi bi-calendar-check text-success fs-4"></i>
+                        </div>
+                        <div>
+                            <h6 class="mb-0">Date</h6>
+                            <p class="text-muted mb-0">{{ stats.last_successful.completed_at.strftime('%Y-%m-%d') }}</p>
+                        </div>
+                    </div>
+                    <div class="d-flex mb-3">
+                        <div class="me-3">
+                            <i class="bi bi-clock text-success fs-4"></i>
+                        </div>
+                        <div>
+                            <h6 class="mb-0">Time</h6>
+                            <p class="text-muted mb-0">{{ stats.last_successful.completed_at.strftime('%H:%M:%S') }}</p>
+                        </div>
+                    </div>
+                    <div class="d-flex">
+                        <div class="me-3">
+                            <i class="bi bi-list-check text-success fs-4"></i>
+                        </div>
+                        <div>
+                            <h6 class="mb-0">Items Synced</h6>
+                            <p class="text-muted mb-0">{{ stats.last_successful.items_synced or 0 }}</p>
+                        </div>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-4">
+                        <i class="bi bi-exclamation-circle text-warning fs-1 mb-3"></i>
+                        <p class="mb-0">No successful syncs found</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Syncs Table -->
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header bg-white py-3">
+            <h5 class="mb-0">Recent Syncs</h5>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Date</th>
+                            <th>Type</th>
+                            <th>Status</th>
+                            <th>Items Synced</th>
+                            <th>Duration</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if history %}
+                            {% for entry in history %}
+                            <tr>
+                                <td>{{ entry.started_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                                <td>
+                                    <span class="badge {% if entry.sync_type == 'manual' %}bg-primary{% else %}bg-info{% endif %}">
+                                        {{ entry.sync_type|capitalize }}
+                                    </span>
+                                </td>
+                                <td>
+                                    {% if entry.status == 'success' %}
+                                    <span class="badge bg-success">Success</span>
+                                    {% elif entry.status == 'failed' %}
+                                    <span class="badge bg-danger">Failed</span>
+                                    {% else %}
+                                    <span class="badge bg-secondary">{{ entry.status|capitalize }}</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ entry.items_synced or 0 }}</td>
+                                <td>
+                                    {% if entry.completed_at %}
+                                        {% set duration = (entry.completed_at - entry.started_at).total_seconds() %}
+                                        {{ "%0.2f"|format(duration) }}s
+                                    {% else %}
+                                        -
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <a href="{{ url_for('history.detail', history_id=entry.id) }}" class="btn btn-sm btn-outline-primary">
+                                        <i class="bi bi-info-circle"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr>
+                                <td colspan="6" class="text-center py-4">
+                                    <p class="mb-0">No sync history found</p>
+                                </td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        {% if chart_data %}
+        // Get the canvas element
+        var canvas = document.getElementById('syncChart');
+        if (canvas) {
+            var ctx = canvas.getContext('2d');
+            
+            // Prepare data from Jinja
+            var labels = {{ chart_data.labels|tojson }};
+            var values = {{ chart_data.values|tojson }};
+            
+            // Create chart
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Syncs per Day',
+                        data: values,
+                        backgroundColor: 'rgba(54, 162, 235, 0.6)',
+                        borderColor: 'rgba(54, 162, 235, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                precision: 0
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        {% endif %}
+    });
+</script>
+{% endblock %}
+
+{% block styles %}
+{{ super() }}
+<style>
+    .history-big-icon {
+        font-size: 3rem;
+        opacity: 0.3;
+    }
+</style>
+{% endblock %} 

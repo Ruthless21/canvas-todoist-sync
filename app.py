@@ -250,7 +250,7 @@ def create_app(config_name='default'):
         return render_template('errors/500.html'), 500
     
     # Register blueprints
-    from blueprints import main_bp, auth_bp, dashboard_bp, settings_bp, admin_bp, sync_bp, payments_bp
+    from blueprints import main_bp, auth_bp, dashboard_bp, settings_bp, admin_bp, sync_bp, payments_bp, history_bp
     app.register_blueprint(main_bp)  # No url_prefix for main blueprint
     app.register_blueprint(auth_bp, url_prefix='/auth')
     app.register_blueprint(dashboard_bp, url_prefix='/dashboard')
@@ -258,6 +258,7 @@ def create_app(config_name='default'):
     app.register_blueprint(admin_bp, url_prefix='/admin')
     app.register_blueprint(sync_bp, url_prefix='/sync')
     app.register_blueprint(payments_bp, url_prefix='/payments')
+    app.register_blueprint(history_bp, url_prefix='/history')
     
     # Initialize Stripe
     stripe.api_key = app.config['STRIPE_SECRET_KEY']

@@ -41,6 +41,11 @@ def login():
         login_success = login_user(user, remember=form.remember_me.data)
         current_app.logger.debug('login_user() result: %s', login_success)
         
+        if not login_success:
+            current_app.logger.error('Login user failed despite valid credentials')
+            flash('Login failed. Please try again.', 'danger')
+            return redirect(url_for('auth.login'))
+        
         # Update last login time
         user.last_login = datetime.utcnow()
         db.session.commit()
@@ -48,12 +53,18 @@ def login():
         current_app.logger.debug('Current authentication status: %s', current_user.is_authenticated)
         current_app.logger.debug('Session data: %s', dict(session))
         
-        # Show success message
-        flash('Login successful!', 'success')
-        
-        # Redirect to the home page
-        current_app.logger.debug('Redirecting to index page after successful login')
-        return redirect(url_for('main.index'))
+        # Show success message only if actually logged in
+        if current_user.is_authenticated:
+            flash('Login successful!', 'success')
+            
+            # Redirect to the home page
+            current_app.logger.debug('Redirecting to index page after successful login')
+            return redirect(url_for('main.index'))
+        else:
+            # This should not normally happen, but handle it just in case
+            current_app.logger.error('User not authenticated after successful login_user()')
+            flash('Login failed. Please try again.', 'danger')
+            return redirect(url_for('auth.login'))
         
     return render_template('login.html', title='Sign In', form=form)
 
