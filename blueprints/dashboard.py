@@ -11,7 +11,6 @@ from services.canvas_api import CanvasAPI
 from services.todoist_api import TodoistClient
 from utils.api import get_api_clients
 from forms import APICredentialsForm
-from flask_wtf.csrf import csrf_exempt
 
 @dashboard_bp.route('/')
 @login_required
@@ -139,7 +138,6 @@ def api_credentials():
 
 @dashboard_bp.route('/api/test_canvas', methods=['POST'])
 @login_required
-@csrf_exempt
 def test_canvas_api():
     """Test Canvas API connection."""
     try:
@@ -157,7 +155,6 @@ def test_canvas_api():
 
 @dashboard_bp.route('/api/test_todoist', methods=['POST'])
 @login_required
-@csrf_exempt
 def test_todoist_api():
     """Test Todoist API connection."""
     try:
@@ -175,7 +172,6 @@ def test_todoist_api():
 
 @dashboard_bp.route('/api/sync', methods=['POST'])
 @login_required
-@csrf_exempt
 def sync_assignments():
     """Sync assignments from Canvas to Todoist."""
     from flask import current_app
@@ -343,7 +339,6 @@ def sync_assignments():
 
 @dashboard_bp.route('/api/refresh_data', methods=['POST'])
 @login_required
-@csrf_exempt
 def refresh_data():
     """Refresh dashboard data."""
     try:
