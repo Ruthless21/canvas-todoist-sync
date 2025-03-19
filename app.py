@@ -375,14 +375,16 @@ def create_app(config_name='default'):
                     user_id=current_user.id,
                     sync_type='canvas_to_todoist',
                     status='success',
-                    items_count=len(assignments),
+                    items_synced=len(assignments),
                     details=json.dumps({
                         'course_id': course_id,
                         'project_id': project_id,
                         'assignments_count': len(assignments),
                         'duration_seconds': duration
                     }),
-                    timestamp=datetime.datetime.now()
+                    timestamp=datetime.datetime.now(),
+                    started_at=start_time,
+                    completed_at=end_time
                 )
                 db.session.add(sync_history)
                 db.session.commit()
@@ -408,13 +410,15 @@ def create_app(config_name='default'):
                     user_id=current_user.id,
                     sync_type='canvas_to_todoist',
                     status='error',
-                    items_count=0,
+                    items_synced=0,
                     details=json.dumps({
                         'course_id': course_id,
                         'project_id': project_id,
                         'error': str(e)
                     }),
-                    timestamp=datetime.datetime.now()
+                    timestamp=datetime.datetime.now(),
+                    started_at=start_time,
+                    completed_at=datetime.datetime.now()
                 )
                 db.session.add(sync_history)
                 db.session.commit()
