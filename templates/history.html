@@ -119,7 +119,7 @@
                         </div>
                         <div>
                             <h6 class="mb-0">Date</h6>
-                            <p class="text-muted mb-0">{{ stats.last_successful.completed_at.strftime('%Y-%m-%d') }}</p>
+                            <p class="text-muted mb-0">{{ stats.last_successful.completed_at.strftime('%Y-%m-%d') if stats.last_successful.completed_at else 'N/A' }}</p>
                         </div>
                     </div>
                     <div class="d-flex mb-3">
@@ -128,7 +128,7 @@
                         </div>
                         <div>
                             <h6 class="mb-0">Time</h6>
-                            <p class="text-muted mb-0">{{ stats.last_successful.completed_at.strftime('%H:%M:%S') }}</p>
+                            <p class="text-muted mb-0">{{ stats.last_successful.completed_at.strftime('%H:%M:%S') if stats.last_successful.completed_at else 'N/A' }}</p>
                         </div>
                     </div>
                     <div class="d-flex">
@@ -173,7 +173,7 @@
                         {% if history %}
                             {% for entry in history %}
                             <tr>
-                                <td>{{ entry.started_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                                <td>{{ entry.started_at.strftime('%Y-%m-%d %H:%M') if entry.started_at else 'N/A' }}</td>
                                 <td>
                                     <span class="badge {% if entry.sync_type == 'manual' %}bg-primary{% else %}bg-info{% endif %}">
                                         {{ entry.sync_type|capitalize }}
@@ -190,7 +190,7 @@
                                 </td>
                                 <td>{{ entry.items_synced or 0 }}</td>
                                 <td>
-                                    {% if entry.completed_at %}
+                                    {% if entry.completed_at and entry.started_at %}
                                         {% set duration = (entry.completed_at - entry.started_at).total_seconds() %}
                                         {{ "%0.2f"|format(duration) }}s
                                     {% else %}
@@ -295,8 +295,8 @@
             var ctx = canvas.getContext('2d');
             
             // Prepare data from Jinja
-            var labels = {{ chart_data.labels|tojson }};
-            var values = {{ chart_data.values|tojson }};
+            var labels = {{ chart_data.labels|tojson|safe }};
+            var values = {{ chart_data.values|tojson|safe }};
             
             // Create chart
             new Chart(ctx, {

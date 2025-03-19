@@ -20,20 +20,30 @@ def index():
     current_app.logger.debug('Querying sync history for user ID: %s', current_user.id)
     try:
         # Only select columns that definitely exist in the database
-        history = db.session.query(
-            SyncHistory.id,
-            SyncHistory.user_id,
-            SyncHistory.sync_type,
-            SyncHistory.status,
-            SyncHistory.items_synced,
-            SyncHistory.details,
-            SyncHistory.error_message,
-            SyncHistory.started_at,
-            SyncHistory.completed_at,
-            SyncHistory.timestamp
-        ).filter(SyncHistory.user_id == current_user.id).order_by(
-            SyncHistory.started_at.desc()
-        ).limit(20).all()
+        # Use a raw SQL query to avoid SQLAlchemy querying for non-existent columns
+        query = """
+            SELECT id, user_id, sync_type, status, items_synced, started_at, completed_at, timestamp
+            FROM sync_history
+            WHERE user_id = :user_id
+            ORDER BY started_at DESC
+            LIMIT 20
+        """
+        result = db.session.execute(query, {'user_id': current_user.id})
+        history = []
+        
+        # Convert result to a list of dictionaries
+        for row in result:
+            history.append({
+                'id': row[0],
+                'user_id': row[1],
+                'sync_type': row[2],
+                'status': row[3],
+                'items_synced': row[4],
+                'started_at': row[5],
+                'completed_at': row[6],
+                'timestamp': row[7]
+            })
+        
         current_app.logger.debug('Found %s history records', len(history))
     except Exception as e:
         current_app.logger.error('Error querying sync history: %s', str(e))
@@ -43,10 +53,22 @@ def index():
     
     # Get stats for this user
     try:
-        total_syncs = SyncHistory.query.filter_by(user_id=current_user.id).count()
-        successful_syncs = SyncHistory.query.filter_by(user_id=current_user.id, status='success').count()
-        failed_syncs = SyncHistory.query.filter_by(user_id=current_user.id, status='failed').count()
-        total_items = db.session.query(func.sum(SyncHistory.items_synced)).filter_by(user_id=current_user.id).scalar() or 0
+        # Use raw SQL to avoid SQLAlchemy issues
+        total_query = "SELECT COUNT(*) FROM sync_history WHERE user_id = :user_id"
+        total_result = db.session.execute(total_query, {'user_id': current_user.id})
+        total_syncs = total_result.scalar() or 0
+        
+        success_query = "SELECT COUNT(*) FROM sync_history WHERE user_id = :user_id AND status = 'success'"
+        success_result = db.session.execute(success_query, {'user_id': current_user.id})
+        successful_syncs = success_result.scalar() or 0
+        
+        failed_query = "SELECT COUNT(*) FROM sync_history WHERE user_id = :user_id AND status = 'failed'"
+        failed_result = db.session.execute(failed_query, {'user_id': current_user.id})
+        failed_syncs = failed_result.scalar() or 0
+        
+        items_query = "SELECT SUM(items_synced) FROM sync_history WHERE user_id = :user_id"
+        items_result = db.session.execute(items_query, {'user_id': current_user.id})
+        total_items = items_result.scalar() or 0
     
         current_app.logger.debug('Sync stats - Total: %s, Success: %s, Failed: %s, Items: %s', 
                              total_syncs, successful_syncs, failed_syncs, total_items)
@@ -60,10 +82,30 @@ def index():
     
     # Get the most recent successful sync
     try:
-        last_successful = SyncHistory.query.filter_by(
-            user_id=current_user.id,
-            status='success'
-        ).order_by(SyncHistory.completed_at.desc()).first()
+        # Use raw SQL to get the last successful sync
+        last_sync_query = """
+            SELECT id, user_id, sync_type, status, items_synced, started_at, completed_at, timestamp
+            FROM sync_history 
+            WHERE user_id = :user_id AND status = 'success'
+            ORDER BY completed_at DESC
+            LIMIT 1
+        """
+        last_sync_result = db.session.execute(last_sync_query, {'user_id': current_user.id})
+        
+        # Convert to dictionary if found
+        last_successful = None
+        for row in last_sync_result:
+            last_successful = {
+                'id': row[0],
+                'user_id': row[1],
+                'sync_type': row[2],
+                'status': row[3],
+                'items_synced': row[4],
+                'started_at': row[5],
+                'completed_at': row[6],
+                'timestamp': row[7]
+            }
+            break
     except Exception as e:
         current_app.logger.error('Error getting last successful sync: %s', str(e))
         last_successful = None
@@ -81,12 +123,23 @@ def index():
             day = fourteen_days_ago + timedelta(days=i)
             next_day = day + timedelta(days=1)
             
-            # Count syncs on this day
-            count = SyncHistory.query.filter(
-                SyncHistory.user_id == current_user.id,
-                SyncHistory.started_at >= day,
-                SyncHistory.started_at < next_day
-            ).count()
+            # Count syncs on this day using raw SQL
+            day_query = """
+                SELECT COUNT(*) 
+                FROM sync_history 
+                WHERE user_id = :user_id 
+                  AND started_at >= :day_start 
+                  AND started_at < :day_end
+            """
+            day_result = db.session.execute(
+                day_query, 
+                {
+                    'user_id': current_user.id,
+                    'day_start': day,
+                    'day_end': next_day
+                }
+            )
+            count = day_result.scalar() or 0
             
             # Add to chart data
             labels.append(day.strftime('%m/%d'))
