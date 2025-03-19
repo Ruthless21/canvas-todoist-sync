@@ -11,6 +11,7 @@ from services.canvas_api import CanvasAPI
 from services.todoist_api import TodoistClient
 from utils.api import get_api_clients
 from forms import APICredentialsForm
+from flask_wtf.csrf import csrf_exempt
 
 @dashboard_bp.route('/')
 @login_required
@@ -138,6 +139,7 @@ def api_credentials():
 
 @dashboard_bp.route('/api/test_canvas', methods=['POST'])
 @login_required
+@csrf_exempt
 def test_canvas_api():
     """Test Canvas API connection."""
     try:
@@ -155,6 +157,7 @@ def test_canvas_api():
 
 @dashboard_bp.route('/api/test_todoist', methods=['POST'])
 @login_required
+@csrf_exempt
 def test_todoist_api():
     """Test Todoist API connection."""
     try:
@@ -172,6 +175,7 @@ def test_todoist_api():
 
 @dashboard_bp.route('/api/sync', methods=['POST'])
 @login_required
+@csrf_exempt
 def sync_assignments():
     """Sync assignments from Canvas to Todoist."""
     from flask import current_app
@@ -183,16 +187,40 @@ def sync_assignments():
     current_app.logger.debug(f"Headers: {request.headers}")
     current_app.logger.debug(f"Session: {session}")
     
+    # Log the raw request body for debugging
+    try:
+        request_body = request.get_data(as_text=True)
+        current_app.logger.debug(f"Raw request body: {request_body}")
+    except Exception as e:
+        current_app.logger.error(f"Error reading request body: {e}")
+    
     # Get data from request
     try:
-        data = request.get_json()
+        # Try to parse JSON data from the request
+        try:
+            data = request.get_json(force=True)
+            current_app.logger.debug(f"Parsed JSON data: {data}")
+        except Exception as json_error:
+            current_app.logger.error(f"JSON parsing error: {json_error}")
+            
+            # Fallback to form data if JSON parsing fails
+            data = {
+                'course_id': request.form.get('course_id'),
+                'project_id': request.form.get('project_id')
+            }
+            current_app.logger.debug(f"Using form data instead: {data}")
+        
         course_id = data.get('course_id')
         project_id = data.get('project_id')
         
+        current_app.logger.debug(f"Extracted course_id: {course_id}, project_id: {project_id}")
+        
         if not course_id or not project_id:
+            error_msg = 'Missing required parameters: course_id and project_id are required'
+            current_app.logger.error(error_msg)
             return jsonify({
                 'success': False,
-                'error': 'Missing required parameters'
+                'error': error_msg
             }), 400
             
         current_app.logger.debug(f"Syncing assignments from Canvas course {course_id} to Todoist project {project_id}")
@@ -315,6 +343,7 @@ def sync_assignments():
 
 @dashboard_bp.route('/api/refresh_data', methods=['POST'])
 @login_required
+@csrf_exempt
 def refresh_data():
     """Refresh dashboard data."""
     try:

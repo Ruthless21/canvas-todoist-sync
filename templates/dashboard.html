@@ -1,5 +1,9 @@
 {% extends "base.html" %}
 {% block title %}Dashboard - Canvas-Todoist Sync{% endblock %}
+{% block head %}
+{{ super() }}
+<meta name="csrf-token" content="{{ csrf_token() }}">
+{% endblock %}
 {% block content %}
 <div class="row mb-4">
     <div class="col-md-12">
@@ -276,42 +280,28 @@ document.addEventListener('DOMContentLoaded', function() {
         }, 3000); // Hide after 3 seconds to allow user to see completion
     }
 
-    // Function to sync assignments with progress bar
+    // Function to sync assignments
     function syncAssignments(courseId, projectId) {
-        // Disable all sync buttons
-        document.querySelectorAll('.sync-button').forEach(btn => {
-            btn.disabled = true;
-        });
+        // Show progress
+        progressContainer.style.display = 'block';
+        progressBar.style.width = '20%';
+        progressBar.innerHTML = '20%';
+        statusMessage.innerHTML = 'Connecting to API...';
         
-        // Show and initialize progress bar
-        updateProgressBar(5, 'Starting sync process...');
-        
-        // Simulate progress while waiting for API response
-        let progress = 5;
-        const progressInterval = setInterval(() => {
-            if (progress < 90) {
-                progress += Math.floor(Math.random() * 10) + 1;
-                progress = Math.min(progress, 90); // Don't exceed 90% until we know it's complete
-                updateProgressBar(progress, 'Syncing assignments...');
-            }
-        }, 500);
-        
-        // Make the actual API call
-        fetch('/api/sync', {
+        // API request
+        fetch('/dashboard/api/sync', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
             },
             body: JSON.stringify({
                 course_id: courseId,
                 project_id: projectId
-            }),
+            })
         })
         .then(response => response.json())
         .then(data => {
-            // Clear the progress simulation
-            clearInterval(progressInterval);
-            
             if (data.success) {
                 // Complete the progress bar
                 updateProgressBar(100, 'Successfully synced ' + data.message);
@@ -326,45 +316,27 @@ document.addEventListener('DOMContentLoaded', function() {
                 updateProgressBar(100, 'Error: ' + data.error);
                 hideProgressBar();
             }
-            
-            // Re-enable all sync buttons
-            document.querySelectorAll('.sync-button').forEach(btn => {
-                btn.disabled = false;
-            });
         })
         .catch((error) => {
-            // Clear the progress simulation
-            clearInterval(progressInterval);
-            
             // Show error in progress bar
             updateProgressBar(100, 'Error: An unexpected problem occurred');
             hideProgressBar();
             
             console.error('Error:', error);
-            
-            // Re-enable all sync buttons
-            document.querySelectorAll('.sync-button').forEach(btn => {
-                btn.disabled = false;
-            });
         });
     }
 
-    // Function to refresh data
-    function refreshData() {
-        // Disable refresh button
-        const refreshButton = document.getElementById('refresh-data');
-        if (refreshButton) {
-            refreshButton.disabled = true;
-        }
+    // Refresh data button
+    document.getElementById('refresh-data').addEventListener('click', function() {
+        this.disabled = true;
+        this.innerHTML = '<i class="bi bi-arrow-clockwise me-1"></i> Refreshing...';
         
-        // Show and initialize progress bar
-        updateProgressBar(10, 'Refreshing data...');
-        
-        fetch('/api/refresh_data', {
+        fetch('/dashboard/api/refresh_data', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-            },
+                'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+            }
         })
         .then(response => response.json())
         .then(data => {
@@ -383,9 +355,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 hideProgressBar();
                 
                 // Re-enable refresh button
-                if (refreshButton) {
-                    refreshButton.disabled = false;
-                }
+                this.disabled = false;
+                this.innerHTML = '<i class="bi bi-arrow-clockwise me-1"></i> Refresh Data';
             }
         })
         .catch((error) => {
@@ -396,11 +367,10 @@ document.addEventListener('DOMContentLoaded', function() {
             hideProgressBar();
             
             // Re-enable refresh button
-            if (refreshButton) {
-                refreshButton.disabled = false;
-            }
+            this.disabled = false;
+            this.innerHTML = '<i class="bi bi-arrow-clockwise me-1"></i> Refresh Data';
         });
-    }
+    });
 
     // Add event listeners to sync buttons
     document.querySelectorAll('.sync-button').forEach(button => {
@@ -414,12 +384,6 @@ document.addEventListener('DOMContentLoaded', function() {
             syncAssignments(courseId, projectId);
         });
     });
-
-    // Add event listener to refresh button
-    const refreshButton = document.getElementById('refresh-data');
-    if (refreshButton) {
-        refreshButton.addEventListener('click', refreshData);
-    }
 });
 </script>
 {% endblock %}

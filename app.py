@@ -20,6 +20,7 @@ from datetime import datetime, timedelta
 import stripe
 import socket
 from config import Config, config
+from flask_wtf.csrf import csrf_exempt
 
 # Load environment variables
 load_dotenv()
@@ -285,21 +286,25 @@ def create_app(config_name='default'):
     from blueprints.dashboard import sync_assignments, refresh_data, test_canvas_api, test_todoist_api
     
     @app.route('/api/sync', methods=['POST'])
+    @csrf_exempt
     def api_sync():
         """Direct route for the sync API endpoint."""
         return sync_assignments()
         
     @app.route('/api/refresh_data', methods=['POST'])
+    @csrf_exempt
     def api_refresh():
         """Direct route for the refresh data API endpoint."""
         return refresh_data()
         
     @app.route('/api/test_canvas', methods=['POST'])
+    @csrf_exempt
     def api_test_canvas():
         """Direct route for the test Canvas API endpoint."""
         return test_canvas_api()
         
     @app.route('/api/test_todoist', methods=['POST'])
+    @csrf_exempt
     def api_test_todoist():
         """Direct route for the test Todoist API endpoint."""
         return test_todoist_api()
