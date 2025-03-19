@@ -1,143 +1,169 @@
 {% extends "base.html" %}
-{% block title %}Sync Detail - Canvas-Todoist Sync{% endblock %}
+{% block title %}Sync Details - Canvas-Todoist Sync{% endblock %}
 
 {% block content %}
 <div class="container py-4">
     <div class="row mb-4">
-        <div class="col-md-8">
+        <div class="col">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('history.index') }}">Sync History</a></li>
+                    <li class="breadcrumb-item active">Sync Details</li>
+                </ol>
+            </nav>
             <h1 class="h3 mb-0">
                 <i class="bi bi-info-circle me-2 text-primary"></i>
-                Sync Operation Detail
+                Sync Operation Details
             </h1>
             <p class="text-muted">
-                Detailed information about this synchronization operation
+                Detailed information about this synchronization
             </p>
-        </div>
-        <div class="col-md-4 text-end">
-            <a href="{{ url_for('history.index') }}" class="btn btn-outline-primary">
-                <i class="bi bi-arrow-left me-1"></i>
-                Back to History
-            </a>
         </div>
     </div>
 
-    <div class="row mb-4">
-        <div class="col-md-4">
-            <div class="card border-0 shadow-sm h-100">
-                <div class="card-header py-3 bg-white">
-                    <h5 class="mb-0">Operation Summary</h5>
+    <div class="row">
+        <div class="col-lg-8">
+            <!-- Main Details Card -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Sync Information</h5>
+                    <span class="badge {% if history.status == 'success' %}bg-success{% elif history.status == 'failed' %}bg-danger{% else %}bg-secondary{% endif %}">
+                        {{ history.status|capitalize }}
+                    </span>
                 </div>
                 <div class="card-body">
-                    <div class="mb-3">
-                        <h6 class="text-muted mb-2">Status</h6>
-                        {% if history.status == 'success' %}
-                            <div class="d-flex align-items-center">
-                                <div class="me-2 text-success">
-                                    <i class="bi bi-check-circle-fill" style="font-size: 1.5rem;"></i>
-                                </div>
-                                <div>
-                                    <span class="text-success fw-bold">Success</span>
-                                    <p class="small text-muted mb-0">Operation completed successfully</p>
-                                </div>
-                            </div>
-                        {% elif history.status == 'failed' %}
-                            <div class="d-flex align-items-center">
-                                <div class="me-2 text-danger">
-                                    <i class="bi bi-x-circle-fill" style="font-size: 1.5rem;"></i>
-                                </div>
-                                <div>
-                                    <span class="text-danger fw-bold">Failed</span>
-                                    <p class="small text-muted mb-0">Operation encountered an error</p>
-                                </div>
-                            </div>
-                        {% else %}
-                            <div class="d-flex align-items-center">
-                                <div class="me-2 text-warning">
-                                    <i class="bi bi-exclamation-circle-fill" style="font-size: 1.5rem;"></i>
-                                </div>
-                                <div>
-                                    <span class="text-warning fw-bold">{{ history.status|capitalize }}</span>
-                                    <p class="small text-muted mb-0">Current operation status</p>
-                                </div>
-                            </div>
-                        {% endif %}
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <strong>Sync ID:</strong>
+                        </div>
+                        <div class="col-md-8">
+                            {{ history.id }}
+                        </div>
                     </div>
-                    
-                    <div class="mb-3">
-                        <h6 class="text-muted mb-2">Sync Type</h6>
-                        <span class="badge {% if history.sync_type == 'manual' %}bg-primary{% else %}bg-info{% endif %}">
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <strong>Type:</strong>
+                        </div>
+                        <div class="col-md-8">
                             {{ history.sync_type|capitalize }}
-                        </span>
+                        </div>
                     </div>
-                    
-                    <div class="mb-3">
-                        <h6 class="text-muted mb-2">Start Time</h6>
-                        <p class="mb-0">{{ history.started_at.strftime('%Y-%m-%d %H:%M:%S') }}</p>
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <strong>Started At:</strong>
+                        </div>
+                        <div class="col-md-8">
+                            {{ history.started_at.strftime('%Y-%m-%d %H:%M:%S') if history.started_at else 'N/A' }}
+                        </div>
                     </div>
-                    
-                    <div class="mb-3">
-                        <h6 class="text-muted mb-2">End Time</h6>
-                        <p class="mb-0">
-                            {% if history.completed_at %}
-                                {{ history.completed_at.strftime('%Y-%m-%d %H:%M:%S') }}
-                            {% else %}
-                                Not completed
-                            {% endif %}
-                        </p>
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <strong>Completed At:</strong>
+                        </div>
+                        <div class="col-md-8">
+                            {{ history.completed_at.strftime('%Y-%m-%d %H:%M:%S') if history.completed_at else 'N/A' }}
+                        </div>
                     </div>
-                    
-                    <div class="mb-3">
-                        <h6 class="text-muted mb-2">Duration</h6>
-                        <p class="mb-0">
-                            {% if history.completed_at %}
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <strong>Duration:</strong>
+                        </div>
+                        <div class="col-md-8">
+                            {% if history.completed_at and history.started_at %}
                                 {% set duration = (history.completed_at - history.started_at).total_seconds() %}
                                 {{ "%0.2f"|format(duration) }} seconds
                             {% else %}
-                                -
+                                N/A
                             {% endif %}
-                        </p>
+                        </div>
                     </div>
-                    
-                    <div class="mb-3">
-                        <h6 class="text-muted mb-2">Items Synced</h6>
-                        <p class="mb-0">{{ history.items_synced or 0 }}</p>
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <strong>Items Synced:</strong>
+                        </div>
+                        <div class="col-md-8">
+                            {{ history.items_synced or 0 }}
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
-        
-        <div class="col-md-8">
-            <div class="card border-0 shadow-sm h-100">
-                <div class="card-header py-3 bg-white">
-                    <h5 class="mb-0">Error Details</h5>
+            
+            <!-- Additional Details -->
+            {% if history.status == 'failed' and history.error_message %}
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-white py-3">
+                    <h5 class="mb-0 text-danger">
+                        <i class="bi bi-exclamation-triangle me-2"></i>
+                        Error Information
+                    </h5>
                 </div>
                 <div class="card-body">
-                    {% if history.error_message %}
-                        <div class="alert alert-danger">
-                            <h6 class="alert-heading">Error Message:</h6>
-                            <pre class="mb-0">{{ history.error_message }}</pre>
-                        </div>
-                    {% else %}
-                        <div class="alert alert-success">
-                            <h6 class="alert-heading">No Errors</h6>
-                            <p class="mb-0">This sync operation completed without any errors.</p>
-                        </div>
+                    <pre class="bg-light p-3 rounded">{{ history.error_message }}</pre>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+        
+        <div class="col-lg-4">
+            <!-- Action Buttons -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-white py-3">
+                    <h5 class="mb-0">Actions</h5>
+                </div>
+                <div class="card-body">
+                    <a href="{{ url_for('history.index') }}" class="btn btn-outline-primary w-100 mb-2">
+                        <i class="bi bi-arrow-left me-2"></i>
+                        Back to History
+                    </a>
+                    
+                    {% if history.status == 'failed' %}
+                    <a href="{{ url_for('dashboard.index') }}" class="btn btn-primary w-100 mb-2">
+                        <i class="bi bi-arrow-repeat me-2"></i>
+                        Try Again
+                    </a>
                     {% endif %}
                 </div>
             </div>
+            
+            <!-- Sync Context -->
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white py-3">
+                    <h5 class="mb-0">Sync Context</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <strong>Source:</strong>
+                        <div class="mt-1">
+                            {% if 'details' in history and history.details %}
+                                {% try %}
+                                    {% set details_dict = history.details|tojson|fromjson %}
+                                    {{ details_dict.get('course_id', 'Unknown') }}
+                                {% except %}
+                                    Unknown
+                                {% endtry %}
+                            {% else %}
+                                Unknown
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div>
+                        <strong>Destination:</strong>
+                        <div class="mt-1">
+                            {% if 'details' in history and history.details %}
+                                {% try %}
+                                    {% set details_dict = history.details|tojson|fromjson %}
+                                    {{ details_dict.get('project_id', 'Unknown') }}
+                                {% except %}
+                                    Unknown
+                                {% endtry %}
+                            {% else %}
+                                Unknown
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
-    </div>
-    
-    <div class="mt-4">
-        <a href="{{ url_for('sync.index') }}" class="btn btn-primary">
-            <i class="bi bi-arrow-repeat me-1"></i>
-            Run New Sync
-        </a>
-        
-        <a href="{{ url_for('history.index') }}" class="btn btn-outline-secondary ms-2">
-            <i class="bi bi-arrow-left me-1"></i>
-            Back to History
-        </a>
     </div>
 </div>
 {% endblock %} 
