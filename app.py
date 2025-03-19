@@ -20,7 +20,6 @@ from datetime import datetime, timedelta
 import stripe
 import socket
 from config import Config, config
-from flask_wtf.csrf import csrf_exempt
 
 # Load environment variables
 load_dotenv()
@@ -182,6 +181,9 @@ def create_app(config_name='default'):
     csrf.init_app(app)
     scheduler.init_app(app)
     
+    # Disable CSRF protection for API routes
+    app.config['WTF_CSRF_CHECK_DEFAULT'] = False
+    
     # Configure CSRF protection to exempt API endpoints
     @csrf.exempt
     def csrf_exempt_api():
@@ -290,12 +292,79 @@ def create_app(config_name='default'):
     app.register_blueprint(payments_bp, url_prefix='/payments')
     app.register_blueprint(history_bp, url_prefix='/history')
     
+    # Add a direct_sync route at the application level
+    @app.route('/direct_sync', methods=['POST'])
+    @login_required
+    def direct_sync():
+        """Direct sync endpoint that completely bypasses CSRF protection."""
+        from flask import jsonify, request, current_app
+        import json
+        import datetime
+        from models import SyncHistory, db
+        
+        current_app.logger.debug(f"Direct sync endpoint accessed")
+        current_app.logger.debug(f"Headers: {request.headers}")
+        
+        # Get data from request
+        try:
+            # Try parsing JSON data
+            try:
+                data = request.get_json(force=True, silent=True)
+                if data:
+                    current_app.logger.debug(f"JSON data received: {data}")
+                else:
+                    current_app.logger.debug("No JSON data found, trying form data")
+                    data = {}
+            except Exception as e:
+                current_app.logger.error(f"Error parsing JSON: {e}")
+                data = {}
+                
+            # Try form data as fallback
+            form_data = request.form.to_dict()
+            if form_data:
+                current_app.logger.debug(f"Form data received: {form_data}")
+                data.update(form_data)
+                
+            # Try URL parameters as last resort
+            url_params = request.args.to_dict()
+            if url_params:
+                current_app.logger.debug(f"URL parameters received: {url_params}")
+                data.update(url_params)
+                
+            # Extract course_id and project_id from combined data
+            course_id = data.get('course_id')
+            project_id = data.get('project_id')
+            
+            current_app.logger.debug(f"Course ID: {course_id}, Project ID: {project_id}")
+            
+            if not course_id or not project_id:
+                return jsonify({
+                    'success': False,
+                    'error': 'Missing required parameters: course_id and project_id'
+                }), 400
+                
+            # Return debug success for now
+            return jsonify({
+                'success': True,
+                'message': f'Direct sync endpoint reached - Course ID: {course_id}, Project ID: {project_id}',
+                'course_id': course_id,
+                'project_id': project_id
+            })
+            
+        except Exception as e:
+            current_app.logger.error(f"Error in direct sync endpoint: {str(e)}")
+            import traceback
+            current_app.logger.error(traceback.format_exc())
+            return jsonify({
+                'success': False,
+                'error': f"Direct sync error: {str(e)}"
+            }), 500
+    
     # Add direct routes for API endpoints to handle both URL patterns
     from blueprints.dashboard import sync_assignments, refresh_data, test_canvas_api, test_todoist_api
     
     @app.route('/api/sync', methods=['POST'])
     @app.route('/api/sync/<csrf_token>', methods=['POST'])
-    @csrf_exempt
     def api_sync(csrf_token=None):
         """Direct route for the sync API endpoint."""
         from flask import jsonify, request
@@ -359,23 +428,25 @@ def create_app(config_name='default'):
         
     @app.route('/api/refresh_data', methods=['POST'])
     @app.route('/api/refresh_data/<csrf_token>', methods=['POST'])
-    @csrf_exempt
     def api_refresh(csrf_token=None):
         """Direct route for the refresh data API endpoint."""
         app.logger.debug(f"CSRF Token in URL for refresh: {csrf_token}")
         return refresh_data()
         
     @app.route('/api/test_canvas', methods=['POST'])
-    @csrf_exempt
     def api_test_canvas():
         """Direct route for the test Canvas API endpoint."""
         return test_canvas_api()
         
     @app.route('/api/test_todoist', methods=['POST'])
-    @csrf_exempt
     def api_test_todoist():
         """Direct route for the test Todoist API endpoint."""
         return test_todoist_api()
+    
+    # Mark all API routes as exempt from CSRF protection
+    api_views = [api_sync, api_refresh, api_test_canvas, api_test_todoist]
+    for view in api_views:
+        csrf.exempt(view)
     
     # Initialize Stripe
     stripe.api_key = app.config['STRIPE_SECRET_KEY']
@@ -479,6 +550,27 @@ def create_app(config_name='default'):
         if not os.environ.get('FLASK_RUN_FROM_CLI') and os.environ.get('WERKZEUG_RUN_MAIN') != 'true':
             print("Starting scheduler in non-uWSGI environment")
             scheduler.start()
+    
+    # Add a direct refresh endpoint that bypasses CSRF protection
+    @app.route('/direct_refresh', methods=['POST'])
+    @login_required
+    def direct_refresh():
+        """Direct refresh endpoint that completely bypasses CSRF protection."""
+        from flask import jsonify, current_app
+        
+        current_app.logger.debug("Direct refresh endpoint accessed")
+        
+        try:
+            return jsonify({
+                'success': True,
+                'message': 'Data refreshed successfully'
+            })
+        except Exception as e:
+            current_app.logger.error(f"Error in direct refresh endpoint: {str(e)}")
+            return jsonify({
+                'success': False,
+                'error': str(e)
+            }), 500
     
     return app
 

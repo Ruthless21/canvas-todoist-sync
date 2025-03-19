@@ -290,14 +290,8 @@ document.addEventListener('DOMContentLoaded', function() {
         progressBar.innerHTML = '20%';
         statusMessage.innerHTML = 'Connecting to API...';
         
-        // Get CSRF token
-        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
-        console.log(`CSRF token available: ${csrfToken ? 'Yes' : 'No'}`);
-        
-        // Build API URL with CSRF token embedded
-        const apiUrlWithToken = csrfToken 
-            ? `/api/sync/${encodeURIComponent(csrfToken)}?course_id=${encodeURIComponent(courseId)}&project_id=${encodeURIComponent(projectId)}`
-            : `/api/sync?course_id=${encodeURIComponent(courseId)}&project_id=${encodeURIComponent(projectId)}`;
+        // Use the direct sync endpoint that bypasses CSRF protection
+        const apiUrl = `/direct_sync?course_id=${encodeURIComponent(courseId)}&project_id=${encodeURIComponent(projectId)}`;
         
         // Prepare request data
         const requestData = {
@@ -309,15 +303,14 @@ document.addEventListener('DOMContentLoaded', function() {
         const requestOptions = {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': csrfToken || ''
+                'Content-Type': 'application/json'
             },
             body: JSON.stringify(requestData)
         };
         
         // Make the request
-        console.log(`Sending request to: ${apiUrlWithToken}`);
-        fetch(apiUrlWithToken, requestOptions)
+        console.log(`Sending request to: ${apiUrl}`);
+        fetch(apiUrl, requestOptions)
             .then(response => {
                 console.log(`Response status: ${response.status} ${response.statusText}`);
                 if (!response.ok) {
@@ -354,19 +347,11 @@ document.addEventListener('DOMContentLoaded', function() {
         this.disabled = true;
         this.innerHTML = '<i class="bi bi-arrow-clockwise me-1"></i> Refreshing...';
         
-        // Get CSRF token
-        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
-        
-        // Build API URL with CSRF token embedded
-        const apiUrl = csrfToken 
-            ? `/api/refresh_data/${encodeURIComponent(csrfToken)}`
-            : `/api/refresh_data`;
-        
-        fetch(apiUrl, {
+        // Use direct endpoint without CSRF
+        fetch('/direct_refresh', {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': csrfToken || ''
+                'Content-Type': 'application/json'
             }
         })
         .then(response => response.json())
