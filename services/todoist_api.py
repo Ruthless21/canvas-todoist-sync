@@ -39,3 +39,15 @@ class TodoistClient:
         except Exception as error:
             print(f"Error getting Todoist projects: {error}")
             return []
+
+    def get_tasks(self, project_id=None):
+        """Get tasks from Todoist, optionally filtered by project"""
+        try:
+            # If project_id is provided, filter tasks by project
+            if project_id:
+                return self.api.get_tasks(project_id=project_id)
+            # Otherwise, get all tasks
+            return self.api.get_tasks()
+        except Exception as error:
+            print(f"Error getting Todoist tasks: {error}")
+            return []

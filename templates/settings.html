@@ -45,7 +45,7 @@
                             </button>
                         </div>
                         
-                        <form method="POST" action="{{ url_for('settings.index') }}" id="api-credentials-form">
+                        <form method="POST" action="{{ url_for('settings.index') }}" id="api-credentials-form" data-show-modal="{{ 'true' if session.get('show_api_creds_modal', False) else 'false' }}">
                             {{ api_form.hidden_tag() }}
                             <input type="hidden" name="form_name" value="api_credentials">
                             
@@ -53,7 +53,10 @@
                                 <h6>Canvas API</h6>
                                 <div class="mb-3">
                                     {{ api_form.canvas_api_url.label(class="form-label") }}
-                                    {{ api_form.canvas_api_url(class="form-control", readonly=false if session.pop('show_api_creds_modal', False) else true, autocomplete="off") }}
+                                    {{ api_form.canvas_api_url(class="form-control", readonly=false if session.pop('show_api_creds_modal', False) else true, autocomplete="off", placeholder="Canvas API URL") }}
+                                    {% if current_user.canvas_api_url %}
+                                        <small class="text-success"><i class="bi bi-check-circle-fill"></i> Canvas API URL is configured</small>
+                                    {% endif %}
                                 </div>
                                 
                                 <div class="mb-3">
@@ -63,11 +66,14 @@
                                         <input type="text" style="display:none" name="fakeusernameremembered" autocomplete="off">
                                         <input type="password" style="display:none" name="fakepasswordremembered" autocomplete="off">
                                         
-                                        {{ api_form.canvas_api_token(class="form-control api-token-field", readonly=false if session.pop('show_api_creds_modal', False) else true, autocomplete="chrome-off", type="password", style="font-family: password;") }}
+                                        {{ api_form.canvas_api_token(class="form-control api-token-field", readonly=false if session.pop('show_api_creds_modal', False) else true, autocomplete="chrome-off", type="password", style="font-family: password;", placeholder="Canvas API Token") }}
                                         <button class="btn btn-outline-secondary toggle-password" type="button" data-target="canvas_api_token">
                                             <i class="bi bi-eye"></i>
                                         </button>
                                     </div>
+                                    {% if current_user.canvas_token_encrypted %}
+                                        <small class="text-success"><i class="bi bi-check-circle-fill"></i> Canvas API Token is configured</small>
+                                    {% endif %}
                                     <div class="form-text">
                                         <a href="https://community.canvaslms.com/t5/Student-Guide/How-do-I-manage-API-access-tokens-as-a-student/ta-p/273" target="_blank">
                                             How to get your Canvas API token
@@ -85,11 +91,14 @@
                                         <input type="text" style="display:none" name="fakeusername2remembered" autocomplete="off">
                                         <input type="password" style="display:none" name="fakepassword2remembered" autocomplete="off">
                                         
-                                        {{ api_form.todoist_api_token(class="form-control api-token-field", readonly=true, autocomplete="chrome-off", type="password", style="font-family: password;") }}
+                                        {{ api_form.todoist_api_token(class="form-control api-token-field", readonly=true, autocomplete="chrome-off", type="password", style="font-family: password;", placeholder="Todoist API Token") }}
                                         <button class="btn btn-outline-secondary toggle-password" type="button" data-target="todoist_api_token">
                                             <i class="bi bi-eye"></i>
                                         </button>
                                     </div>
+                                    {% if current_user.todoist_token_encrypted %}
+                                        <small class="text-success"><i class="bi bi-check-circle-fill"></i> Todoist API Token is configured</small>
+                                    {% endif %}
                                     <div class="form-text">
                                         <a href="https://todoist.com/app/settings/integrations/developer" target="_blank">
                                             How to get your Todoist API token
@@ -315,10 +324,6 @@
         const canvasApiToken = document.getElementById('canvas_api_token');
         const todoistApiToken = document.getElementById('todoist_api_token');
         
-        // Initial values (masked for security)
-        const canvasApiTokenValue = "{{ api_form.canvas_api_token.data or '' }}";
-        const todoistApiTokenValue = "{{ api_form.todoist_api_token.data or '' }}";
-        
         // Setup toggle password buttons
         function initToggleListeners() {
             const toggleButtons = document.querySelectorAll('.toggle-password');
@@ -403,29 +408,14 @@
                 document.querySelector(hash).classList.add('show', 'active');
             }
         }
-    });
-
-    // Function to activate a specific tab
-    function activateTab(tabId) {
-        // Get the tab element
-        const tabElement = document.querySelector('a[data-bs-target="#' + tabId + '"]');
         
-        // If the tab exists, activate it
-        if (tabElement) {
-            const tabInstance = new bootstrap.Tab(tabElement);
-            tabInstance.show();
-        }
-    }
-    
-    // API Credentials Modal
-    document.addEventListener('DOMContentLoaded', function() {
         // Check if we should show API credentials tab and modal
-        var showApiCredsModal = {% if session.get('show_api_creds_modal', False) %}true{% else %}false{% endif %};
+        // This code handles showing the API credentials tab when redirected from dashboard
+        const shouldShowApiCredsModal = document.getElementById('api-credentials-form').dataset.showModal === 'true';
         
-        if (showApiCredsModal) {
+        if (shouldShowApiCredsModal) {
             // Enable editing mode for the API credentials form
             formInputs.forEach(input => {
-                // Skip honeypot fields
                 if (input.name && input.name.includes('fake')) return;
                 input.readOnly = false;
             });
@@ -436,80 +426,48 @@
             saveBtn.classList.remove('d-none');
             
             // Activate the API credentials tab
-            activateTab('api-credentials');
+            document.querySelector('a[href="#api-credentials"]').click();
             
-            // Create a modal programmatically without template literals
-            var modalDiv = document.createElement('div');
-            modalDiv.className = 'modal fade';
-            modalDiv.id = 'apiCredentialsModal';
-            modalDiv.setAttribute('tabindex', '-1');
-            modalDiv.setAttribute('aria-hidden', 'true');
+            // Create a modal to inform user
+            const modalHTML = `
+                <div class="modal fade" id="apiCredentialsModal" tabindex="-1" aria-hidden="true">
+                    <div class="modal-dialog modal-dialog-centered">
+                        <div class="modal-content">
+                            <div class="modal-header bg-warning text-dark">
+                                <h5 class="modal-title"><i class="bi bi-exclamation-triangle-fill me-2"></i>API Credentials Required</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body">
+                                <p>To access the dashboard, you need to set up your API credentials first.</p>
+                                <p>Please enter your Canvas and Todoist API information in the form below to continue.</p>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-primary" data-bs-dismiss="modal">I Understand</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
             
-            var modalDialog = document.createElement('div');
-            modalDialog.className = 'modal-dialog modal-dialog-centered';
-            
-            var modalContent = document.createElement('div');
-            modalContent.className = 'modal-content';
-            
-            var modalHeader = document.createElement('div');
-            modalHeader.className = 'modal-header bg-warning text-dark';
-            
-            var modalTitle = document.createElement('h5');
-            modalTitle.className = 'modal-title';
-            
-            var icon = document.createElement('i');
-            icon.className = 'bi bi-exclamation-triangle-fill me-2';
-            
-            modalTitle.appendChild(icon);
-            modalTitle.appendChild(document.createTextNode('API Credentials Required'));
-            
-            var closeButton = document.createElement('button');
-            closeButton.className = 'btn-close';
-            closeButton.setAttribute('type', 'button');
-            closeButton.setAttribute('data-bs-dismiss', 'modal');
-            closeButton.setAttribute('aria-label', 'Close');
-            
-            modalHeader.appendChild(modalTitle);
-            modalHeader.appendChild(closeButton);
-            
-            var modalBody = document.createElement('div');
-            modalBody.className = 'modal-body';
-            
-            var p1 = document.createElement('p');
-            p1.textContent = 'To access the dashboard, you need to set up your API credentials first.';
-            
-            var p2 = document.createElement('p');
-            p2.textContent = 'Please enter your Canvas and Todoist API information in the form below to continue.';
-            
-            modalBody.appendChild(p1);
-            modalBody.appendChild(p2);
-            
-            var modalFooter = document.createElement('div');
-            modalFooter.className = 'modal-footer';
-            
-            var confirmButton = document.createElement('button');
-            confirmButton.className = 'btn btn-primary';
-            confirmButton.setAttribute('type', 'button');
-            confirmButton.setAttribute('data-bs-dismiss', 'modal');
-            confirmButton.textContent = 'I Understand';
-            
-            modalFooter.appendChild(confirmButton);
-            
-            // Assemble the modal
-            modalContent.appendChild(modalHeader);
-            modalContent.appendChild(modalBody);
-            modalContent.appendChild(modalFooter);
-            modalDialog.appendChild(modalContent);
-            modalDiv.appendChild(modalDialog);
-            
-            // Add modal to the page
-            document.body.appendChild(modalDiv);
+            // Add the modal to the page
+            document.body.insertAdjacentHTML('beforeend', modalHTML);
             
             // Show the modal
-            var modal = new bootstrap.Modal(document.getElementById('apiCredentialsModal'));
+            const modal = new bootstrap.Modal(document.getElementById('apiCredentialsModal'));
             modal.show();
         }
     });
+
+    // Function to activate a specific tab
+    function activateTab(tabId) {
+        // Get the tab element
+        const tabElement = document.querySelector('a[href="#' + tabId + '"]');
+        
+        // If the tab exists, activate it
+        if (tabElement) {
+            tabElement.click();
+        }
+    }
 </script>
 {% endblock %}
 {% endblock %}
