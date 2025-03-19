@@ -344,7 +344,6 @@ def create_app(config_name='default'):
                 }), 400
             
             # Get API clients for the current user
-            from utils.api import get_api_clients
             canvas_client, todoist_client, sync_service = get_api_clients()
             
             if not canvas_client or not todoist_client or not sync_service:
