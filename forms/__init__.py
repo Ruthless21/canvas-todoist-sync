@@ -53,9 +53,10 @@ class UserSettingsForm(FlaskForm):
 
 class APICredentialsForm(FlaskForm):
     """API credentials form."""
-    canvas_url = StringField('Canvas API URL', validators=[DataRequired()])
-    canvas_token = PasswordField('Canvas API Token', validators=[DataRequired()])
-    todoist_token = PasswordField('Todoist API Token', validators=[DataRequired()])
+    canvas_api_url = StringField('Canvas API URL', validators=[DataRequired()])
+    canvas_api_token = PasswordField('Canvas API Token', validators=[DataRequired()])
+    todoist_api_token = PasswordField('Todoist API Token', validators=[DataRequired()])
+    submit = SubmitField('Save Credentials')
 
 class AccountUpdateForm(FlaskForm):
     """Account update form."""
