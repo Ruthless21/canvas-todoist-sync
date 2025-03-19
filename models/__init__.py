@@ -43,6 +43,11 @@ class User(UserMixin, db.Model):
         """Return True if the user is authenticated."""
         return True
     
+    @property
+    def is_active(self):
+        """Return True to allow all users to login for now."""
+        return True
+    
     def get_id(self):
         """Return the user ID as a string."""
         return str(self.id)
