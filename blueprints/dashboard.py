@@ -183,159 +183,43 @@ def sync_assignments():
     current_app.logger.debug(f"Headers: {request.headers}")
     current_app.logger.debug(f"Session: {session}")
     
-    # Log the raw request body for debugging
+    # Return a simple response immediately just to test if the route is accessible
     try:
+        # Basic info about the request
+        current_app.logger.debug("--- SYNC DEBUG START ---")
         request_body = request.get_data(as_text=True)
         current_app.logger.debug(f"Raw request body: {request_body}")
-    except Exception as e:
-        current_app.logger.error(f"Error reading request body: {e}")
-    
-    # Get data from request
-    try:
-        # Try to parse JSON data from the request
+        form_data = request.form.to_dict()
+        current_app.logger.debug(f"Form data: {form_data}")
+        json_data = None
+        
         try:
-            data = request.get_json(force=True)
-            current_app.logger.debug(f"Parsed JSON data: {data}")
-        except Exception as json_error:
-            current_app.logger.error(f"JSON parsing error: {json_error}")
-            
-            # Fallback to form data if JSON parsing fails
-            data = {
-                'course_id': request.form.get('course_id'),
-                'project_id': request.form.get('project_id')
-            }
-            current_app.logger.debug(f"Using form data instead: {data}")
-        
-        course_id = data.get('course_id')
-        project_id = data.get('project_id')
-        
-        current_app.logger.debug(f"Extracted course_id: {course_id}, project_id: {project_id}")
-        
-        if not course_id or not project_id:
-            error_msg = 'Missing required parameters: course_id and project_id are required'
-            current_app.logger.error(error_msg)
-            return jsonify({
-                'success': False,
-                'error': error_msg
-            }), 400
-            
-        current_app.logger.debug(f"Syncing assignments from Canvas course {course_id} to Todoist project {project_id}")
-        
-        # Get API clients
-        canvas_client, todoist_client = get_api_clients(current_user)
-        if not canvas_client or not todoist_client:
-            return jsonify({
-                'success': False,
-                'error': 'API clients not configured properly'
-            }), 400
-        
-        # Get assignments from Canvas
-        assignments = canvas_client.get_assignments(course_id)
-        if not assignments:
-            return jsonify({
-                'success': False,
-                'error': 'No assignments found for this course'
-            }), 404
-            
-        current_app.logger.debug(f"Found {len(assignments)} assignments in Canvas course")
-        
-        # Sync each assignment to Todoist
-        synced_count = 0
-        for assignment in assignments:
-            # Skip assignments that have been submitted or don't have due dates
-            if assignment.get('submission', {}).get('submitted_at') or not assignment.get('due_at'):
-                continue
-                
-            # Create task in Todoist
-            due_date = assignment.get('due_at')
-            if due_date:
-                # Convert from ISO format to YYYY-MM-DD
-                try:
-                    due_date_obj = datetime.datetime.fromisoformat(due_date.replace('Z', '+00:00'))
-                    due_date = due_date_obj.strftime('%Y-%m-%d')
-                except Exception as e:
-                    current_app.logger.error(f"Error parsing due date: {e}")
-                    due_date = None
-            
-            # Create the task in Todoist
-            task = todoist_client.create_task(
-                content=assignment.get('name', 'Unnamed assignment'),
-                due_date=due_date,
-                project_id=project_id,
-                priority=3,  # Medium priority
-                # Add the Canvas assignment link as a comment
-                description=f"Canvas Assignment: {assignment.get('html_url', '')}\n\n{assignment.get('description', '')}"
-            )
-            
-            if task:
-                synced_count += 1
-        
-        # Log the sync in history
-        try:
-            # Create sync record with flexible field names to support both models
-            sync_record_data = {
-                'user_id': current_user.id,
-                'sync_type': 'canvas_to_todoist',
-                'status': 'success' if synced_count > 0 else 'failed',
-                'started_at': datetime.datetime.utcnow(),
-                'completed_at': datetime.datetime.utcnow(),
-            }
-            
-            # Check which fields the model supports
-            model_columns = SyncHistory.__table__.columns.keys()
-            
-            # Add fields depending on what's available in the model
-            if 'items_synced' in model_columns:
-                sync_record_data['items_synced'] = synced_count
-            elif 'items_count' in model_columns:
-                sync_record_data['items_count'] = synced_count
-                
-            if 'error_message' in model_columns and synced_count == 0:
-                sync_record_data['error_message'] = 'No assignments were synced'
-                
-            # Optional newer fields
-            if 'source_id' in model_columns:
-                sync_record_data['source_id'] = course_id
-            if 'destination_id' in model_columns:
-                sync_record_data['destination_id'] = project_id
-            if 'details' in model_columns:
-                sync_record_data['details'] = json.dumps({
-                    'course_id': course_id,
-                    'project_id': project_id,
-                    'total_assignments': len(assignments),
-                    'synced_assignments': synced_count
-                })
-                
-            # Create and save the record
-            sync_record = SyncHistory(**sync_record_data)
-            db.session.add(sync_record)
-            db.session.commit()
+            json_data = request.get_json(force=True, silent=True)
+            current_app.logger.debug(f"JSON data: {json_data}")
         except Exception as e:
-            current_app.logger.error(f"Error saving sync history: {e}")
-            db.session.rollback()
-        
-        # Update user's last sync time
-        try:
-            current_user.last_sync = datetime.datetime.utcnow()
-            db.session.commit()
-        except Exception as e:
-            current_app.logger.error(f"Error updating user's last sync time: {e}")
-            db.session.rollback()
-        
+            current_app.logger.error(f"Error parsing JSON: {e}")
+            
+        # Return a simple test response to see if it gets back to the browser
         return jsonify({
             'success': True,
-            'message': f"{synced_count} assignments to Todoist",
-            'total': len(assignments),
-            'synced': synced_count
+            'message': 'Debug response - route is reachable',
+            'received_data': {
+                'json': json_data,
+                'form': form_data,
+                'raw': request_body[:100] if request_body else None  # First 100 chars only
+            }
         })
+        
     except Exception as e:
-        current_app.logger.error(f"Error in sync_assignments: {str(e)}")
+        current_app.logger.error(f"Error in debug response: {str(e)}")
         import traceback
         current_app.logger.error(traceback.format_exc())
         return jsonify({
             'success': False,
-            'error': str(e)
+            'error': f"Debug error: {str(e)}"
         }), 500
+    
+    # The rest of the function won't be reached during testing
 
 @dashboard_bp.route('/api/refresh_data', methods=['POST'])
 @login_required

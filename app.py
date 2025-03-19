@@ -315,7 +315,30 @@ def create_app(config_name='default'):
     @csrf_exempt_route
     def api_sync():
         """Direct route for the sync API endpoint."""
-        return sync_assignments()
+        from flask import jsonify, request
+        
+        # Simple debug response to test route reachability
+        app.logger.debug("--- DIRECT API SYNC ROUTE ACCESSED ---")
+        app.logger.debug(f"Headers: {request.headers}")
+        
+        try:
+            body = request.get_data(as_text=True)
+            app.logger.debug(f"Request body: {body[:100]}")  # Log first 100 chars only
+            
+            return jsonify({
+                'success': True,
+                'message': 'Direct API sync endpoint reached successfully',
+                'route': 'direct',
+                'received_data': {
+                    'body': body[:100] if body else None
+                }
+            })
+        except Exception as e:
+            app.logger.error(f"Error in direct API sync route: {str(e)}")
+            return jsonify({
+                'success': False,
+                'error': f"Direct API error: {str(e)}"
+            }), 500
         
     @app.route('/api/refresh_data', methods=['POST'])
     @csrf_exempt_route

@@ -282,48 +282,76 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Function to sync assignments
     function syncAssignments(courseId, projectId) {
+        console.log(`Starting sync process for course ${courseId} to project ${projectId}`);
+        
         // Show progress
         progressContainer.style.display = 'block';
         progressBar.style.width = '20%';
         progressBar.innerHTML = '20%';
         statusMessage.innerHTML = 'Connecting to API...';
         
-        // API request
-        fetch('/dashboard/api/sync', {
+        // Get CSRF token
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+        console.log(`CSRF token available: ${csrfToken ? 'Yes' : 'No'}`);
+        
+        // Prepare request data
+        const requestData = {
+            course_id: courseId,
+            project_id: projectId
+        };
+        
+        // Request options
+        const requestOptions = {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                'X-CSRFToken': csrfToken || ''
             },
-            body: JSON.stringify({
-                course_id: courseId,
-                project_id: projectId
+            body: JSON.stringify(requestData)
+        };
+        
+        // Try multiple endpoints in sequence if needed
+        tryApiEndpoint('/dashboard/api/sync', requestOptions)
+            .catch(error => {
+                console.log('First endpoint failed, trying direct API endpoint');
+                statusMessage.innerHTML = 'Retrying alternate API endpoint...';
+                return tryApiEndpoint('/api/sync', requestOptions);
             })
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                // Complete the progress bar
-                updateProgressBar(100, 'Successfully synced ' + data.message);
-                
-                // Hide progress bar after a delay
-                setTimeout(() => {
+            .then(data => {
+                console.log(`API response:`, data);
+                if (data.success) {
+                    // Complete the progress bar
+                    updateProgressBar(100, 'Successfully synced: ' + data.message);
+                    
+                    // Hide progress bar after a delay
+                    setTimeout(() => {
+                        hideProgressBar();
+                        location.reload(); // Refresh the page to show updated data
+                    }, 1500);
+                } else {
+                    // Show error in progress bar
+                    updateProgressBar(100, 'Error: ' + (data.error || 'Unknown error'));
                     hideProgressBar();
-                    location.reload(); // Refresh the page to show updated data
-                }, 1500);
-            } else {
-                // Show error in progress bar
-                updateProgressBar(100, 'Error: ' + data.error);
+                }
+            })
+            .catch(error => {
+                console.error('All API endpoints failed:', error);
+                updateProgressBar(100, 'Error: All API endpoints failed');
                 hideProgressBar();
-            }
-        })
-        .catch((error) => {
-            // Show error in progress bar
-            updateProgressBar(100, 'Error: An unexpected problem occurred');
-            hideProgressBar();
-            
-            console.error('Error:', error);
-        });
+            });
+    }
+    
+    // Helper function to try an API endpoint
+    function tryApiEndpoint(url, options) {
+        console.log(`Trying API endpoint: ${url}`);
+        return fetch(url, options)
+            .then(response => {
+                console.log(`Response from ${url}: ${response.status} ${response.statusText}`);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+                return response.json();
+            });
     }
 
     // Refresh data button
