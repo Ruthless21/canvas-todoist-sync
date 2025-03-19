@@ -47,12 +47,13 @@
                         
                         <form method="POST" action="{{ url_for('settings.index') }}" id="api-credentials-form">
                             {{ api_form.hidden_tag() }}
+                            <input type="hidden" name="form_name" value="api_credentials">
                             
                             <div class="mb-4">
                                 <h6>Canvas API</h6>
                                 <div class="mb-3">
                                     {{ api_form.canvas_api_url.label(class="form-label") }}
-                                    {{ api_form.canvas_api_url(class="form-control", readonly=true, autocomplete="off") }}
+                                    {{ api_form.canvas_api_url(class="form-control", readonly=false if session.pop('show_api_creds_modal', False) else true, autocomplete="off") }}
                                 </div>
                                 
                                 <div class="mb-3">
@@ -62,7 +63,7 @@
                                         <input type="text" style="display:none" name="fakeusernameremembered" autocomplete="off">
                                         <input type="password" style="display:none" name="fakepasswordremembered" autocomplete="off">
                                         
-                                        {{ api_form.canvas_api_token(class="form-control api-token-field", readonly=true, autocomplete="chrome-off", type="password", style="font-family: password;") }}
+                                        {{ api_form.canvas_api_token(class="form-control api-token-field", readonly=false if session.pop('show_api_creds_modal', False) else true, autocomplete="chrome-off", type="password", style="font-family: password;") }}
                                         <button class="btn btn-outline-secondary toggle-password" type="button" data-target="canvas_api_token">
                                             <i class="bi bi-eye"></i>
                                         </button>
@@ -196,6 +197,7 @@
                     <div class="card-body">
                         <form method="POST" action="{{ url_for('settings.index') }}">
                             {{ account_form.hidden_tag() }}
+                            <input type="hidden" name="form_name" value="account_settings">
                             
                             <div class="mb-3">
                                 {{ account_form.username.label(class="form-label") }}
@@ -225,6 +227,7 @@
                     <div class="card-body">
                         <form method="POST" action="{{ url_for('settings.index') }}">
                             {{ password_form.hidden_tag() }}
+                            <input type="hidden" name="form_name" value="password_change">
                             
                             <div class="mb-3">
                                 {{ password_form.current_password.label(class="form-label") }}
@@ -417,7 +420,21 @@
     // API Credentials Modal
     document.addEventListener('DOMContentLoaded', function() {
         // Check if we should show API credentials tab and modal
-        {% if session.pop('show_api_creds_modal', False) %}
+        var showApiCredsModal = {% if session.get('show_api_creds_modal', False) %}true{% else %}false{% endif %};
+        
+        if (showApiCredsModal) {
+            // Enable editing mode for the API credentials form
+            formInputs.forEach(input => {
+                // Skip honeypot fields
+                if (input.name && input.name.includes('fake')) return;
+                input.readOnly = false;
+            });
+            
+            // Show the save button
+            editBtn.classList.add('d-none');
+            cancelBtn.classList.remove('d-none');
+            saveBtn.classList.remove('d-none');
+            
             // Activate the API credentials tab
             activateTab('api-credentials');
             
@@ -491,7 +508,7 @@
             // Show the modal
             var modal = new bootstrap.Modal(document.getElementById('apiCredentialsModal'));
             modal.show();
-        {% endif %}
+        }
     });
 </script>
 {% endblock %}
