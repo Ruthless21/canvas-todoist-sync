@@ -248,15 +248,42 @@ def sync_assignments():
         
         # Log the sync in history
         try:
-            sync_record = SyncHistory(
-                user_id=current_user.id,
-                sync_type='canvas_to_todoist',
-                items_synced=synced_count,
-                status='success' if synced_count > 0 else 'failed',
-                started_at=datetime.datetime.utcnow(),
-                completed_at=datetime.datetime.utcnow(),
-                error_message=None if synced_count > 0 else 'No assignments were synced'
-            )
+            # Create sync record with flexible field names to support both models
+            sync_record_data = {
+                'user_id': current_user.id,
+                'sync_type': 'canvas_to_todoist',
+                'status': 'success' if synced_count > 0 else 'failed',
+                'started_at': datetime.datetime.utcnow(),
+                'completed_at': datetime.datetime.utcnow(),
+            }
+            
+            # Check which fields the model supports
+            model_columns = SyncHistory.__table__.columns.keys()
+            
+            # Add fields depending on what's available in the model
+            if 'items_synced' in model_columns:
+                sync_record_data['items_synced'] = synced_count
+            elif 'items_count' in model_columns:
+                sync_record_data['items_count'] = synced_count
+                
+            if 'error_message' in model_columns and synced_count == 0:
+                sync_record_data['error_message'] = 'No assignments were synced'
+                
+            # Optional newer fields
+            if 'source_id' in model_columns:
+                sync_record_data['source_id'] = course_id
+            if 'destination_id' in model_columns:
+                sync_record_data['destination_id'] = project_id
+            if 'details' in model_columns:
+                sync_record_data['details'] = json.dumps({
+                    'course_id': course_id,
+                    'project_id': project_id,
+                    'total_assignments': len(assignments),
+                    'synced_assignments': synced_count
+                })
+                
+            # Create and save the record
+            sync_record = SyncHistory(**sync_record_data)
             db.session.add(sync_record)
             db.session.commit()
         except Exception as e:

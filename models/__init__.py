@@ -118,12 +118,16 @@ class SyncHistory(db.Model):
     """Model for storing sync history."""
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    sync_type = db.Column(db.String(20), nullable=False)  # 'manual' or 'automatic'
+    sync_type = db.Column(db.String(20), nullable=False)  # 'canvas_to_todoist' or 'todoist_to_canvas'
     status = db.Column(db.String(20), nullable=False)  # 'success' or 'failed'
     items_synced = db.Column(db.Integer, default=0)
+    source_id = db.Column(db.String(50), nullable=True)  # Canvas course ID
+    destination_id = db.Column(db.String(50), nullable=True)  # Todoist project ID
+    details = db.Column(db.Text, nullable=True)  # JSON data with additional details
     error_message = db.Column(db.Text)
     started_at = db.Column(db.DateTime, nullable=False)
     completed_at = db.Column(db.DateTime)
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
     
     # Relationships
     user = db.relationship('User', backref=db.backref('sync_history', lazy='dynamic'))

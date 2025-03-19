@@ -281,6 +281,29 @@ def create_app(config_name='default'):
     app.register_blueprint(payments_bp, url_prefix='/payments')
     app.register_blueprint(history_bp, url_prefix='/history')
     
+    # Add direct routes for API endpoints to handle both URL patterns
+    from blueprints.dashboard import sync_assignments, refresh_data, test_canvas_api, test_todoist_api
+    
+    @app.route('/api/sync', methods=['POST'])
+    def api_sync():
+        """Direct route for the sync API endpoint."""
+        return sync_assignments()
+        
+    @app.route('/api/refresh_data', methods=['POST'])
+    def api_refresh():
+        """Direct route for the refresh data API endpoint."""
+        return refresh_data()
+        
+    @app.route('/api/test_canvas', methods=['POST'])
+    def api_test_canvas():
+        """Direct route for the test Canvas API endpoint."""
+        return test_canvas_api()
+        
+    @app.route('/api/test_todoist', methods=['POST'])
+    def api_test_todoist():
+        """Direct route for the test Todoist API endpoint."""
+        return test_todoist_api()
+    
     # Initialize Stripe
     stripe.api_key = app.config['STRIPE_SECRET_KEY']
     
