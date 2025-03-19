@@ -154,7 +154,9 @@ def create_app(config_name='default'):
     
     # Server domain name
     if domain and domain != 'localhost:5000':
-        app.config['SERVER_NAME'] = domain
+        # Comment out SERVER_NAME as it can cause routing issues with subdomain handling
+        # app.config['SERVER_NAME'] = domain
+        
         # PythonAnywhere uses a subdomain setup
         if 'pythonanywhere.com' in domain:
             app.config['SESSION_COOKIE_DOMAIN'] = '.'+domain  # Include subdomain
