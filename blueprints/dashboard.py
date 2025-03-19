@@ -46,11 +46,45 @@ def index():
         try:
             # Canvas data
             current_app.logger.debug('Fetching Canvas courses')
-            courses = canvas_client.get_courses()
+            canvas_data = canvas_client.get_courses()
+            current_app.logger.debug(f'Canvas raw data type: {type(canvas_data)}')
+            
+            # Process Canvas data to ensure we have consistent structure
+            courses = []
+            for course in canvas_data:
+                # Convert Canvas course data to a standardized format
+                course_obj = {
+                    'id': course.get('id'),
+                    'name': course.get('name') or course.get('course_code', f"Course #{course.get('id')}"),
+                    'course_code': course.get('course_code'),
+                    'term': course.get('term', {}).get('name') if course.get('term') else None,
+                    'start_date': course.get('start_at'),
+                    'end_date': course.get('end_at'),
+                    'url': course.get('html_url')
+                }
+                courses.append(course_obj)
+            
+            current_app.logger.debug(f'Processed courses: {courses[:2]}')  # Log first 2 courses only
             
             # Todoist data
             current_app.logger.debug('Fetching Todoist projects')
-            projects = todoist_client.get_projects()
+            todoist_projects = todoist_client.get_projects()
+            
+            # Process Todoist data for consistency
+            projects = []
+            for project in todoist_projects:
+                # Convert Todoist project data to a standardized format
+                project_obj = {
+                    'id': getattr(project, 'id', None),
+                    'name': getattr(project, 'name', f"Project #{getattr(project, 'id', 'unknown')}"),
+                    'color': getattr(project, 'color', None),
+                    'is_shared': getattr(project, 'is_shared', False)
+                }
+                projects.append(project_obj)
+                
+            current_app.logger.debug(f'Processed projects: {projects[:2]}')  # Log first 2 projects only
+            
+            # Get tasks
             tasks = todoist_client.get_tasks()
             
             current_app.logger.debug('Successfully loaded dashboard data')

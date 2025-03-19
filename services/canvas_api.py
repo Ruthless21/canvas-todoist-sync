@@ -53,6 +53,8 @@ class CanvasAPI:
             response.raise_for_status()
             
             data = response.json()
+            if data and len(data) > 0:
+                logging.info(f"First course data sample: {data[0]}")
             logging.info(f"Successfully fetched {len(data)} courses from Canvas")
             return data
         except requests.exceptions.ConnectionError:
