@@ -78,20 +78,20 @@
                             <div class="mb-4">
                                 <h6>Todoist API</h6>
                                 <div class="mb-3">
-                                    {{ api_form.todoist_api_key.label(class="form-label") }}
+                                    {{ api_form.todoist_api_token.label(class="form-label") }}
                                     <div class="input-group">
                                         <!-- Completely prevent password autofill -->
                                         <input type="text" style="display:none" name="fakeusername2remembered" autocomplete="off">
                                         <input type="password" style="display:none" name="fakepassword2remembered" autocomplete="off">
                                         
-                                        {{ api_form.todoist_api_key(class="form-control api-token-field", readonly=true, autocomplete="chrome-off", type="password", style="font-family: password;") }}
-                                        <button class="btn btn-outline-secondary toggle-password" type="button" data-target="todoist_api_key">
+                                        {{ api_form.todoist_api_token(class="form-control api-token-field", readonly=true, autocomplete="chrome-off", type="password", style="font-family: password;") }}
+                                        <button class="btn btn-outline-secondary toggle-password" type="button" data-target="todoist_api_token">
                                             <i class="bi bi-eye"></i>
                                         </button>
                                     </div>
                                     <div class="form-text">
                                         <a href="https://todoist.com/app/settings/integrations/developer" target="_blank">
-                                            How to get your Todoist API key
+                                            How to get your Todoist API token
                                         </a>
                                     </div>
                                 </div>
@@ -310,11 +310,11 @@
     document.addEventListener('DOMContentLoaded', function() {
         // DOM elements
         const canvasApiToken = document.getElementById('canvas_api_token');
-        const todoistApiKey = document.getElementById('todoist_api_key');
+        const todoistApiToken = document.getElementById('todoist_api_token');
         
         // Initial values (masked for security)
         const canvasApiTokenValue = "{{ api_form.canvas_api_token.data or '' }}";
-        const todoistApiKeyValue = "{{ api_form.todoist_api_key.data or '' }}";
+        const todoistApiTokenValue = "{{ api_form.todoist_api_token.data or '' }}";
         
         // Setup toggle password buttons
         function initToggleListeners() {

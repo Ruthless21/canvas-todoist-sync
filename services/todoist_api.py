@@ -6,7 +6,7 @@ load_dotenv()
 
 class TodoistClient:
     def __init__(self, api_token=None):
-        env_token = os.getenv('TODOIST_API_KEY')
+        env_token = os.getenv('TODOIST_API_TOKEN')
         
         # Remove debug logging that exposes partial credentials
         

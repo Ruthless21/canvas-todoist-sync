@@ -8,8 +8,9 @@ from flask_login import login_required, current_user
 from blueprints import dashboard_bp
 from models import User, db
 from services.canvas_api import CanvasAPI
-from services.todoist_api import TodoistAPI
+from services.todoist_api import TodoistClient
 from utils.api import get_api_clients
+from forms import APICredentialsForm
 
 @dashboard_bp.route('/')
 @login_required
@@ -63,10 +64,13 @@ def index():
 @login_required
 def api_credentials():
     """Handle API credential management."""
+    form = APICredentialsForm()
+    
     if request.method == 'POST':
-        canvas_url = request.form.get('canvas_url', '').strip()
-        canvas_token = request.form.get('canvas_token', '').strip()
-        todoist_token = request.form.get('todoist_token', '').strip()
+        # Get values from form or fallback to direct request.form
+        canvas_url = form.canvas_api_url.data if form.validate() else request.form.get('canvas_api_url', '').strip()
+        canvas_token = form.canvas_api_token.data if form.validate() else request.form.get('canvas_api_token', '').strip()
+        todoist_token = form.todoist_api_token.data if form.validate() else request.form.get('todoist_api_token', '').strip()
         
         if not all([canvas_url, canvas_token, todoist_token]):
             flash('All fields are required', 'danger')
@@ -84,7 +88,7 @@ def api_credentials():
             db.session.rollback()
             flash(f'Error saving credentials: {str(e)}', 'danger')
     
-    return render_template('api_credentials.html')
+    return render_template('api_credentials.html', form=form)
 
 @dashboard_bp.route('/api/test_canvas', methods=['POST'])
 @login_required
