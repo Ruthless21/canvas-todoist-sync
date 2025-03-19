@@ -171,8 +171,9 @@ def test_todoist_api():
         return jsonify({'success': False, 'message': str(e)})
 
 @dashboard_bp.route('/api/sync', methods=['POST'])
+@dashboard_bp.route('/api/sync/<csrf_token>', methods=['POST'])
 @login_required
-def sync_assignments():
+def sync_assignments(csrf_token=None):
     """Sync assignments from Canvas to Todoist."""
     from flask import current_app
     import json
@@ -181,6 +182,7 @@ def sync_assignments():
     
     current_app.logger.debug(f"Request method: {request.method}, path: {request.path}")
     current_app.logger.debug(f"Headers: {request.headers}")
+    current_app.logger.debug(f"CSRF Token in URL: {csrf_token}")
     current_app.logger.debug(f"Session: {session}")
     
     # Return a simple response immediately just to test if the route is accessible
@@ -222,9 +224,12 @@ def sync_assignments():
     # The rest of the function won't be reached during testing
 
 @dashboard_bp.route('/api/refresh_data', methods=['POST'])
+@dashboard_bp.route('/api/refresh_data/<csrf_token>', methods=['POST'])
 @login_required
-def refresh_data():
+def refresh_data(csrf_token=None):
     """Refresh dashboard data."""
+    from flask import current_app
+    current_app.logger.debug(f"Refresh data endpoint accessed with CSRF token: {csrf_token}")
     try:
         return jsonify({
             'success': True,

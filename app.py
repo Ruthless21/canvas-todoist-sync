@@ -193,7 +193,8 @@ def create_app(config_name='default'):
     # Configure CSRF protection to exempt API endpoints
     @csrf.exempt
     def csrf_exempt_api():
-        if request.path.startswith('/api/') and request.method == 'POST':
+        """Exempt all API routes from CSRF protection"""
+        if request.path.startswith('/api/') or request.path.startswith('/dashboard/api/'):
             return True
         return False
     
@@ -312,25 +313,60 @@ def create_app(config_name='default'):
     from blueprints.dashboard import sync_assignments, refresh_data, test_canvas_api, test_todoist_api
     
     @app.route('/api/sync', methods=['POST'])
+    @app.route('/api/sync/<csrf_token>', methods=['POST'])
     @csrf_exempt_route
-    def api_sync():
+    def api_sync(csrf_token=None):
         """Direct route for the sync API endpoint."""
         from flask import jsonify, request
         
         # Simple debug response to test route reachability
         app.logger.debug("--- DIRECT API SYNC ROUTE ACCESSED ---")
         app.logger.debug(f"Headers: {request.headers}")
+        app.logger.debug(f"CSRF Token in URL: {csrf_token}")
         
         try:
             body = request.get_data(as_text=True)
             app.logger.debug(f"Request body: {body[:100]}")  # Log first 100 chars only
             
+            # Get JSON data with fallback
+            try:
+                json_data = request.get_json(force=True, silent=True)
+                app.logger.debug(f"JSON data: {json_data}")
+            except Exception as e:
+                app.logger.error(f"Error parsing JSON: {e}")
+                json_data = None
+                
+            # Try to get form data as fallback
+            form_data = request.form.to_dict()
+            app.logger.debug(f"Form data: {form_data}")
+            
+            # Try to get course_id and project_id from any source
+            course_id = None
+            project_id = None
+            
+            if json_data:
+                course_id = json_data.get('course_id')
+                project_id = json_data.get('project_id')
+            
+            if form_data and not (course_id and project_id):
+                course_id = form_data.get('course_id', course_id)
+                project_id = form_data.get('project_id', project_id)
+                
+            # Get URL parameters as last resort
+            if not (course_id and project_id):
+                course_id = request.args.get('course_id', course_id)
+                project_id = request.args.get('project_id', project_id)
+                
+            app.logger.debug(f"Final course_id: {course_id}, project_id: {project_id}")
+            
             return jsonify({
                 'success': True,
-                'message': 'Direct API sync endpoint reached successfully',
+                'message': f'Direct API sync debug - course_id: {course_id}, project_id: {project_id}',
                 'route': 'direct',
                 'received_data': {
-                    'body': body[:100] if body else None
+                    'body': body[:100] if body else None,
+                    'course_id': course_id,
+                    'project_id': project_id
                 }
             })
         except Exception as e:
@@ -341,9 +377,11 @@ def create_app(config_name='default'):
             }), 500
         
     @app.route('/api/refresh_data', methods=['POST'])
+    @app.route('/api/refresh_data/<csrf_token>', methods=['POST'])
     @csrf_exempt_route
-    def api_refresh():
+    def api_refresh(csrf_token=None):
         """Direct route for the refresh data API endpoint."""
+        app.logger.debug(f"CSRF Token in URL for refresh: {csrf_token}")
         return refresh_data()
         
     @app.route('/api/test_canvas', methods=['POST'])
