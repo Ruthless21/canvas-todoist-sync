@@ -387,7 +387,13 @@ def create_app(config_name='default'):
                     completed_at=end_time
                 )
                 db.session.add(sync_history)
-                db.session.commit()
+                try:
+                    db.session.commit()
+                except Exception as db_error:
+                    # Log the database error but don't fail the API call
+                    current_app.logger.error(f"Error saving sync history: {str(db_error)}")
+                    current_app.logger.error(f"This is likely a database schema mismatch issue. The sync itself was successful.")
+                    db.session.rollback()
                 
                 return jsonify({
                     'success': True,
@@ -421,7 +427,13 @@ def create_app(config_name='default'):
                     completed_at=datetime.datetime.now()
                 )
                 db.session.add(sync_history)
-                db.session.commit()
+                try:
+                    db.session.commit()
+                except Exception as db_error:
+                    # Log the database error but don't fail the API call
+                    current_app.logger.error(f"Error saving error sync history: {str(db_error)}")
+                    current_app.logger.error(f"This is likely a database schema mismatch issue. The sync failed but this is only a logging issue.")
+                    db.session.rollback()
                 
                 return jsonify({
                     'success': False,
