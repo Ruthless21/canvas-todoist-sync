@@ -376,6 +376,8 @@ def create_app(config_name='default'):
                     sync_type='canvas_to_todoist',
                     status='success',
                     items_synced=len(assignments),
+                    source_id=course_id,
+                    destination_id=project_id,
                     details=json.dumps({
                         'course_id': course_id,
                         'project_id': project_id,
@@ -394,6 +396,18 @@ def create_app(config_name='default'):
                     current_app.logger.error(f"Error saving sync history: {str(db_error)}")
                     current_app.logger.error(f"This is likely a database schema mismatch issue. The sync itself was successful.")
                     db.session.rollback()
+                
+                # Clear caches to ensure data is fresh
+                try:
+                    # Clear cache keys related to this user
+                    if hasattr(current_app, 'cache'):
+                        user_courses_key = f"courses_{current_user.id}"
+                        user_projects_key = f"projects_{current_user.id}"
+                        current_app.cache.delete(user_courses_key)
+                        current_app.cache.delete(user_projects_key)
+                        current_app.logger.debug(f"Cleared cache keys: {user_courses_key}, {user_projects_key}")
+                except Exception as cache_error:
+                    current_app.logger.error(f"Error clearing cache: {str(cache_error)}")
                 
                 return jsonify({
                     'success': True,
@@ -417,6 +431,8 @@ def create_app(config_name='default'):
                     sync_type='canvas_to_todoist',
                     status='error',
                     items_synced=0,
+                    source_id=course_id,
+                    destination_id=project_id,
                     details=json.dumps({
                         'course_id': course_id,
                         'project_id': project_id,
