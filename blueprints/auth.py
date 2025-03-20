@@ -10,6 +10,7 @@ from blueprints import auth_bp
 from forms import LoginForm, RegistrationForm
 from models import User, db
 from datetime import datetime
+from sqlalchemy import func
 
 def url_parse(url):
     """Parse URL for security checks."""
@@ -27,10 +28,21 @@ def login():
     
     if form.validate_on_submit():
         current_app.logger.debug('Login form submitted and validated')
-        user = User.query.filter_by(username=form.username.data).first()
         
-        if user is None or not user.check_password(form.password.data):
-            current_app.logger.debug('Login failed: Invalid credentials')
+        # Convert username to lowercase for case-insensitive comparison
+        username_lower = form.username.data.lower()
+        current_app.logger.debug('Attempting login with username (converted to lowercase): %s', username_lower)
+        
+        # Try to find the user with case-insensitive search
+        user = User.query.filter(func.lower(User.username) == username_lower).first()
+        
+        if user is None:
+            current_app.logger.debug('Login failed: User not found')
+            flash('Invalid username or password', 'danger')
+            return redirect(url_for('auth.login'))
+            
+        if not user.check_password(form.password.data):
+            current_app.logger.debug('Login failed: Incorrect password for user: %s', user.username)
             flash('Invalid username or password', 'danger')
             return redirect(url_for('auth.login'))
         
@@ -145,12 +157,28 @@ def register():
     
     form = RegistrationForm()
     if form.validate_on_submit():
+        # Log registration attempt
+        current_app.logger.debug('Registration form submitted and validated')
+        current_app.logger.debug('Registering new user with username: %s, email: %s', 
+                             form.username.data, form.email.data)
+        
+        # Create user with preserved username display but normalized internal representation
         user = User(username=form.username.data, email=form.email.data)
         user.set_password(form.password.data)
-        db.session.add(user)
-        db.session.commit()
-        flash('Congratulations, you are now a registered user!', 'success')
-        return redirect(url_for('auth.login'))
+        
+        try:
+            db.session.add(user)
+            db.session.commit()
+            current_app.logger.debug('User registered successfully: %s (ID: %s)', user.username, user.id)
+            flash('Congratulations, you are now a registered user!', 'success')
+            
+            # Add helpful login instructions
+            flash('Please login with your username and password', 'info')
+            return redirect(url_for('auth.login'))
+        except Exception as e:
+            db.session.rollback()
+            current_app.logger.error('Registration failed: %s', str(e))
+            flash('Registration failed. Please try again.', 'danger')
     
     return render_template('register.html', title='Register', form=form)
 

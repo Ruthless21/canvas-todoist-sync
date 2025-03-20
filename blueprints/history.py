@@ -22,7 +22,7 @@ def index():
         # Only select columns that definitely exist in the database
         # Use a raw SQL query to avoid SQLAlchemy querying for non-existent columns
         query = text("""
-            SELECT id, user_id, sync_type, status, items_synced, started_at, completed_at, timestamp
+            SELECT id, user_id, sync_type, status, items_synced, started_at, completed_at
             FROM sync_history
             WHERE user_id = :user_id
             ORDER BY started_at DESC
@@ -40,8 +40,7 @@ def index():
                 'status': row[3],
                 'items_synced': row[4],
                 'started_at': row[5],
-                'completed_at': row[6],
-                'timestamp': row[7]
+                'completed_at': row[6]
             })
         
         current_app.logger.debug('Found %s history records', len(history))
@@ -84,7 +83,7 @@ def index():
     try:
         # Use raw SQL to get the last successful sync
         last_sync_query = text("""
-            SELECT id, user_id, sync_type, status, items_synced, started_at, completed_at, timestamp
+            SELECT id, user_id, sync_type, status, items_synced, started_at, completed_at
             FROM sync_history 
             WHERE user_id = :user_id AND status = 'success'
             ORDER BY completed_at DESC
@@ -102,8 +101,7 @@ def index():
                 'status': row[3],
                 'items_synced': row[4],
                 'started_at': row[5],
-                'completed_at': row[6],
-                'timestamp': row[7]
+                'completed_at': row[6]
             }
             break
     except Exception as e:
@@ -115,8 +113,8 @@ def index():
     fourteen_days_ago = today - timedelta(days=13)
     
     # Get sync counts for each day
-    chart_data = []
-    labels = []
+    chart_labels = []
+    chart_values = []
     
     try:
         for i in range(14):
@@ -141,18 +139,18 @@ def index():
             )
             count = day_result.scalar() or 0
             
-            # Add to chart data
-            labels.append(day.strftime('%m/%d'))
-            chart_data.append(int(count))  # Ensure count is a standard int, not a SQLAlchemy Integer
+            # Add to chart data (ensure all values are simple Python primitives)
+            chart_labels.append(day.strftime('%m/%d'))
+            chart_values.append(int(count))  # Ensure count is a standard int, not a SQLAlchemy Integer
     except Exception as e:
         current_app.logger.error('Error building chart data: %s', str(e))
         # Provide empty chart data if there's an error
-        labels = [day.strftime('%m/%d') for day in 
+        chart_labels = [day.strftime('%m/%d') for day in 
                 [fourteen_days_ago + timedelta(days=i) for i in range(14)]]
-        chart_data = [0] * 14
+        chart_values = [0] * 14
     
     # Debug the chart data
-    current_app.logger.debug('Chart data: labels=%s, values=%s', labels, chart_data)
+    current_app.logger.debug('Chart data: labels=%s, values=%s', chart_labels, chart_values)
     
     return render_template('history.html', 
                           history=history,
@@ -164,8 +162,8 @@ def index():
                               'last_successful': last_successful
                           },
                           chart_data={
-                              'labels': labels,
-                              'values': chart_data
+                              'labels': chart_labels,
+                              'values': chart_values
                           })
 
 @history_bp.route('/clear', methods=['POST'])
@@ -191,7 +189,7 @@ def detail(history_id):
     try:
         # Get the history item and ensure it belongs to the current user
         query = text("""
-            SELECT id, user_id, sync_type, status, items_synced, started_at, completed_at, timestamp
+            SELECT id, user_id, sync_type, status, items_synced, started_at, completed_at
             FROM sync_history
             WHERE id = :history_id AND user_id = :user_id
             LIMIT 1
@@ -207,8 +205,7 @@ def detail(history_id):
                 'status': row[3],
                 'items_synced': row[4],
                 'started_at': row[5],
-                'completed_at': row[6],
-                'timestamp': row[7]
+                'completed_at': row[6]
             }
             break
             
