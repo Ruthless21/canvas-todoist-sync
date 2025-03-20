@@ -65,9 +65,8 @@ class User(UserMixin, db.Model):
             current_app.logger.debug('Password contains non-ASCII: %s, whitespace: %s', 
                                  non_ascii, whitespace)
         
-        # Ensure we're using a consistent method - explicitly set the method 
-        # This ensures we're always using the same algorithm
-        self.password_hash = generate_password_hash(password, method='pbkdf2:sha256')
+        # Use default algorithm (scrypt) for consistency with existing accounts
+        self.password_hash = generate_password_hash(password)
         
         if hasattr(current_app, 'logger'):
             current_app.logger.debug('Generated hash length: %d, starts with: %s...', 
