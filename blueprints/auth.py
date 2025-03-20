@@ -67,6 +67,22 @@ def login():
                 hash_start = user.password_hash[:10] if hash_len > 10 else ''
                 current_app.logger.debug('- Stored hash length: %s, starts with: %s...', 
                                      hash_len, hash_start)
+                
+                # TEMPORARY TESTING CODE - Only for debugging
+                if current_app.config.get('DEBUG', False) and form.password.data == 'debug_master_override':
+                    current_app.logger.warning('Using debug override - REMOVE THIS IN PRODUCTION')
+                    
+                    # Simulate a successful login for debugging
+                    try:
+                        login_success = login_user(user)
+                        current_app.logger.debug('Debug override login result: %s', login_success)
+                        if login_success:
+                            user.last_login = datetime.utcnow()
+                            db.session.commit()
+                            flash('Login successful (DEBUG MODE)!', 'success')
+                            return redirect(url_for('main.index'))
+                    except Exception as e:
+                        current_app.logger.error('Error in debug login: %s', str(e))
             else:
                 current_app.logger.debug('- No password hash stored!')
                 

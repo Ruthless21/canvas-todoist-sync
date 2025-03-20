@@ -58,7 +58,17 @@ class User(UserMixin, db.Model):
         if hasattr(current_app, 'logger'):
             current_app.logger.debug('Setting password for user %s', self.username)
             current_app.logger.debug('Password length: %d', len(password))
-        self.password_hash = generate_password_hash(password)
+            
+            # Check for problematic characters
+            non_ascii = any(ord(c) > 127 for c in password)
+            whitespace = any(c.isspace() for c in password)
+            current_app.logger.debug('Password contains non-ASCII: %s, whitespace: %s', 
+                                 non_ascii, whitespace)
+        
+        # Ensure we're using a consistent method - explicitly set the method 
+        # This ensures we're always using the same algorithm
+        self.password_hash = generate_password_hash(password, method='pbkdf2:sha256')
+        
         if hasattr(current_app, 'logger'):
             current_app.logger.debug('Generated hash length: %d, starts with: %s...', 
                                  len(self.password_hash), self.password_hash[:10])
@@ -73,10 +83,35 @@ class User(UserMixin, db.Model):
                                  len(self.password_hash) if self.password_hash else 0, 
                                  self.password_hash[:10] if self.password_hash else '')
         
-        result = check_password_hash(self.password_hash, password)
+        # DEBUGGING: Try both ways of checking the password
+        normal_result = check_password_hash(self.password_hash, password)
+        
+        # This is for debugging only - never store or compare plaintext passwords in production
+        from flask import current_app
+        if hasattr(current_app, 'config') and current_app.config.get('DEBUG', False):
+            try:
+                from utils.encryption import encrypt_data, decrypt_data
+                # Try a workaround for debugging only
+                from werkzeug.security import generate_password_hash
+                test_hash = generate_password_hash(password)
+                current_app.logger.debug('Test hash for input: %s', test_hash[:10])
+                
+                # Store password temporarily for debugging - DELETE THIS AFTER FIXING THE ISSUE
+                if not hasattr(self, '_temp_pwd'):
+                    self._temp_pwd = encrypt_data(password)
+                    current_app.logger.debug('Storing temporary debug password reference')
+                    db.session.commit()
+                else:
+                    stored_pwd = decrypt_data(self._temp_pwd)
+                    match = stored_pwd == password
+                    current_app.logger.debug('Direct compare (TEMPORARY DEBUG ONLY): %s', match)
+            except Exception as e:
+                current_app.logger.error('Error in debug password check: %s', str(e))
+        
         if hasattr(current_app, 'logger'):
-            current_app.logger.debug('Password check result: %s', result)
-        return result
+            current_app.logger.debug('Password check result: %s', normal_result)
+        
+        return normal_result
     
     def set_canvas_token(self, token):
         """Set encrypted Canvas API token."""
