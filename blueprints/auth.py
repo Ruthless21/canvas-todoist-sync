@@ -43,6 +43,33 @@ def login():
             
         if not user.check_password(form.password.data):
             current_app.logger.debug('Login failed: Incorrect password for user: %s', user.username)
+            
+            # Add detailed debugging for password validation
+            current_app.logger.debug('Password debug info:')
+            current_app.logger.debug('- Input password length: %s', len(form.password.data))
+            current_app.logger.debug('- First/last chars: %s...%s', 
+                                 form.password.data[:1] if form.password.data else '', 
+                                 form.password.data[-1:] if form.password.data else '')
+            
+            # Check if there are any non-ascii characters
+            has_non_ascii = any(ord(c) > 127 for c in form.password.data)
+            current_app.logger.debug('- Contains non-ASCII chars: %s', has_non_ascii)
+            
+            # Check for leading/trailing whitespace
+            has_leading_whitespace = form.password.data.startswith(' ')
+            has_trailing_whitespace = form.password.data.endswith(' ')
+            current_app.logger.debug('- Has leading/trailing whitespace: %s/%s', 
+                                 has_leading_whitespace, has_trailing_whitespace)
+            
+            # Get password hash info (safely)
+            if user.password_hash:
+                hash_len = len(user.password_hash)
+                hash_start = user.password_hash[:10] if hash_len > 10 else ''
+                current_app.logger.debug('- Stored hash length: %s, starts with: %s...', 
+                                     hash_len, hash_start)
+            else:
+                current_app.logger.debug('- No password hash stored!')
+                
             flash('Invalid username or password', 'danger')
             return redirect(url_for('auth.login'))
         
@@ -161,6 +188,17 @@ def register():
         current_app.logger.debug('Registration form submitted and validated')
         current_app.logger.debug('Registering new user with username: %s, email: %s', 
                              form.username.data, form.email.data)
+        
+        # Log password details (safely)
+        current_app.logger.debug('Password info:')
+        current_app.logger.debug('- Length: %d', len(form.password.data))
+        current_app.logger.debug('- First/last chars: %s...%s', 
+                             form.password.data[:1] if form.password.data else '',
+                             form.password.data[-1:] if form.password.data else '')
+        current_app.logger.debug('- Contains non-ASCII: %s', 
+                             any(ord(c) > 127 for c in form.password.data))
+        current_app.logger.debug('- Has whitespace: %s', 
+                             any(c.isspace() for c in form.password.data))
         
         # Create user with preserved username display but normalized internal representation
         user = User(username=form.username.data, email=form.email.data)

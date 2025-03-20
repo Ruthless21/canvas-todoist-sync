@@ -54,11 +54,29 @@ class User(UserMixin, db.Model):
     
     def set_password(self, password):
         """Set user password."""
+        from flask import current_app
+        if hasattr(current_app, 'logger'):
+            current_app.logger.debug('Setting password for user %s', self.username)
+            current_app.logger.debug('Password length: %d', len(password))
         self.password_hash = generate_password_hash(password)
+        if hasattr(current_app, 'logger'):
+            current_app.logger.debug('Generated hash length: %d, starts with: %s...', 
+                                 len(self.password_hash), self.password_hash[:10])
     
     def check_password(self, password):
         """Check user password."""
-        return check_password_hash(self.password_hash, password)
+        from flask import current_app
+        if hasattr(current_app, 'logger'):
+            current_app.logger.debug('Checking password for user %s', self.username)
+            current_app.logger.debug('Password length: %d', len(password))
+            current_app.logger.debug('Stored hash length: %d, starts with: %s...', 
+                                 len(self.password_hash) if self.password_hash else 0, 
+                                 self.password_hash[:10] if self.password_hash else '')
+        
+        result = check_password_hash(self.password_hash, password)
+        if hasattr(current_app, 'logger'):
+            current_app.logger.debug('Password check result: %s', result)
+        return result
     
     def set_canvas_token(self, token):
         """Set encrypted Canvas API token."""
